@@ -1,58 +1,74 @@
-title = "My New Hugo Site"
-theme = "codex" 
-# Override these settings with your own
+baseurl = "/"
 languageCode = "en-us"
-baseURL = "https://example.org/"
-copyright = "© {year}"
+theme = "hello-friend"
+paginate = 5
 
-# Add your Disqus shortname here.
-# disqusShortname = ""
-
-# Add your Google Analytics identifier: UA-XXXXXXXX-X
-# googleAnalytics = "" 
-
-# Optional params
 [params]
-  # Follow the Hugo date/time format reference here: 
-  # https://gohugo.io/functions/format/#gos-layout-string
-  dateFormat = "Jan 2 2006"
+  # dir name of your blog content (default is `content/posts`).
+  # the list of set content will show up on your index page (baseurl).
+  contentTypeName = "posts"
 
-  # Links to your social accounts, comment/uncomment as needed. Icons will be displayed for those specified.
-  twitter = "https://twitter.com/<your handle>"
-  github = "https://github.com/<your handle>"
-  # email = "mailto:<your email>"
-  # facebook = "https://facebook.com/<your handle>"
-  # gitlab = "https://gitlab.com/<your handle>"
-  # instagram = "https://instagram.com/<your handle>"
-  # linkedin = "<link to your profile>"
-  # youtube = "https://www.youtube.com/channel/<your channel>"
-  
-  # Titles for your icons (shown as tooltips), and also their display order.
-  # Currently, these icons are supported: 
-  #   "Twitter", "GitHub", "Email", "Facebook", "GitLab", "Instagram", "LinkedIn", "YouTube"
-  iconTitles = ["Twitter", "GitHub"]
+  # "light" or "dark"
+  defaultTheme = "dark"
 
-# This disables Hugo's default syntax highlighting in favor
-# of prismjs. If you wish to use Hugo's default syntax highlighting
-# over prismjs, remove this. You will also need to remove the prismjs
-# vendor script in layouts/blog/single.html.
-[markup]
-  [markup.highlight]
-    codeFences = false
-    
-  # Set to false to disallow raw HTML in markdown files
-  [markup.goldmark.renderer]
-      unsafe = true
+  # if you set this to 0, only submenu trigger will be visible
+  showMenuItems = 2
 
-# Controls the navigation
-[[menu.main]]
-  identifier = "about"
-  name = "about"
-  title = "About"
-  url = "/"
+  # Show reading time in minutes for posts
+  showReadingTime = false
 
-[[menu.main]]
-  identifier = "blog"
-  name = "blog"
-  title = "Blog"
-  url = "/blog"
+  # Show table of contents at the top of your posts (defaults to false)
+  # Alternatively, add this param to post front matter for specific posts
+  # toc = true
+
+  # Show full page content in RSS feed items
+  #(default is Description or Summary metadata in the front matter)
+  # rssFullText = true
+
+[languages]
+  [languages.en]
+    title = "Sloppy Quorum"
+    subtitle = ""
+    keywords = ""
+    copyright = ""
+    menuMore = ""
+    writtenBy = "Written by"
+    readMore = ""
+    readOtherPosts = "Read other posts"
+    newerPosts = "Newer posts"
+    olderPosts = "Older posts"
+    minuteReadingTime = "min read"
+    dateFormatSingle = "2 Jan 2006"
+    dateFormatList = "2 Jan 2006"
+    # leave empty to disable, enter display text to enable
+    # lastModDisplay = ""
+
+    [languages.en.params.logo]
+      logoText = "Sloppy Quorum"
+      logoHomeLink = "/"
+    # or
+    #
+    # path = "/img/your-example-logo.svg"
+    # alt = "Your example logo alt text"
+
+    [languages.en.menu]
+      [[languages.en.menu.main]]
+        identifier = "about"
+        name = "About"
+        url = "/"
+      [[languages.en.menu.main]]
+        identifier = "blog"
+        name = "Blog"
+        url = "/blog"
+
+  [markup]
+    [markup.highlight]
+      codeFences = true
+      guessSyntax = false
+      hl_Lines = ""
+      lineNoStart = 1
+      lineNos = false
+      lineNumbersInTable = false
+      noClasses = true
+      style = "monokai"
+      tabWidth = 4

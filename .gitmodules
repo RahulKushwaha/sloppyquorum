@@ -4,3 +4,18 @@
 [submodule "themes/codex"]
 	path = themes/codex
 	url = https://github.com/jakewies/hugo-theme-codex.git
+[submodule "themes/simple-a"]
+	path = themes/simple-a
+	url = https://github.com/AlexFinn/simple-a.git
+[submodule "kiera"]
+	path = kiera
+	url = https://github.com/avianto/hugo-kiera.git
+[submodule "themes/kiera"]
+	path = themes/kiera
+	url = https://github.com/avianto/hugo-kiera.git
+[submodule "themes/themes/hello-friend"]
+	path = themes/themes/hello-friend
+	url = https://github.com/panr/hugo-theme-hello-friend.git
+[submodule "themes/hello-friend"]
+	path = themes/hello-friend
+	url = https://github.com/panr/hugo-theme-hello-friend.git
