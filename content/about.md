@@ -1,94 +1,60 @@
 +++
 title = "About"
-description = "A minimal, latex-style hugo theme for personal blogging"
-date = "2023-06-20"
-aliases = ["about-us", "about-texify2", "contact"]
-author = "weastur"
+description = ""
+date = "2024-05-26"
+aliases = ["about-us", "contact"]
+author = "Rahul Kushwaha"
 +++
-A minimal, latex-style hugo theme for personal blogging.
-The successor of the original [TeXify](https://github.com/queensferryme/hugo-theme-texify)
 
-<iframe src="https://ghbtns.com/github-btn.html?user=weastur&repo=hugo-texify2&type=star&count=false&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+# Rahul Kushwaha
 
-## Features
+## Professional
 
-- **Social sharing buttons**
-- **Any comment engine (giscus, remark42, hyvor, etc.)**
-- **Word Counter and Reading Time**
-- **[Mermaid](https://mermaid.js.org) support**
-- **DuckDuckGo search**
-- **Configurable root font size**
-- **Buymeacoffee widget**
-- **Auto numbered subtitles**
-- **Simplified config**
-- **Hugo modules support**
-- **Tested on Chrome, Safari, Edge, Firefox**
-- [Disqus](https://disqus.com/) & Google Analytics included
-- Responsive design for mobile devices
-- Customize the site with your stylesheets
-- Math equations powered by [KaTeX](https://katex.org/)
-([MathJax](https://www.mathjax.org/) has been deleted)
-- Minimal CSS, No JavaScript, Blazing Fast!
+I am a Staff Software Engineer at Reddit working in the Caching &
+Storage Infra Org.
+My current work involves providing Redis as an infrastructure
+using Kubernetes.
 
-\* Diff with the original texify is **bold**
+Previously, I worked with Meta/Facebook on their low-dependency
+metadata storage system called [DelosTable](https://engineering.fb.com/2019/06/06/data-center-engineering/delos/). This
+system provides a table-like(Relational) abstraction to our
+customers requiring a highly available & linearizable store.
 
-## Usage
+Before that I was working at OfferUp handling the Identity & User
+Domain.
 
-### Install as git submodule
+For more details of my work: [Resume](./Kushwaha_Resume_05_02_2024.pdf)
 
-Install:
+## Personal
+### MyDb
+I am also writing my own Replicated Database as a hobby. It is still
+in its infancy but has a Multi-Paxos implementation for Log with
+dynamic reconfiguration. It provides table abstraction using RocksDb, and
+uses Apache Arrow for query execution & data handling.
+https://github.com/RahulKushwaha/replicated_counter.
 
-```bash
-git submodule add https://github.com/weastur/hugo-texify2.git themes/hugo-texify2
-echo "theme = 'hugo-texify2'" >> hugo.toml
-```
+### Innodb Experiments
+I have been experimenting with Innodb to understand its internals, mostly around Concurrency-Control and Logging. I 
+have made the following contributions to its fork called [Embedded Innodb](https://github.com/sunbains/embedded-innodb)
 
-Upgrade:
+[My Contributions](https://github.com/sunbains/embedded-innodb/pulls?q=is%3Apr+is%3Aclosed+author%3ARahulKushwaha)
 
-```bash
-git submodule foreach git pull origin master
-```
+### DistSys Reading Group
+I am an active member of the DistSys Reading Group. We read and discuss one distributed systems paper every week.
+Come & join us: [Link](https://charap.co/reading-group)
 
-### Install as hugo module
+#### My Presentations:
+1. [Polaris: Enabling Transaction Priority in Optimistic Concurrency Control](https://pages.cs.wisc.edu/~chenhaoy/publication/polaris/)[![](https://markdown-videos-api.jorgenkh.no/youtube/E9BJF9Tu6n8)](https://www.youtube.com/embed/E9BJF9Tu6n8?si=AqKcty9Pfm7iVMFr)
+2. [Morty: Scaling Concurrency Control with Re-Execution](https://www.cs.cornell.edu/lorenzo/papers/Burke23Morty.pdf)[![](https://markdown-videos-api.jorgenkh.no/youtube/49QJSkrMKNc)](https://youtu.be/49QJSkrMKNc?si=yOe6tVt_tLuZ9x1D)
+3. *[Coming Soon]* [Understanding the Performance Implications of the Design Principles in Storage-Disaggregated Databases](https://www.cs.purdue.edu/homes/csjgwang/pubs/SIGMOD24_OpenAurora.pdf)
 
-Initialize hugo modules, if not done yet:
+### Database Book Club
+I actively participate, and help run a book club where we discuss all-things-databases.
+**Currently reading**: *Transaction Processing: Concepts and Techniques, by Jim Gray & Andreas Reuter*
 
-```bash
-hugo mod init github.com/<username>/<projectName>
-```
+Come & join us. [Discord]( https://databass.dev/discord)
 
-add `[module]` section to your `hugo.toml`:
-
-```bash
-[module]
-[[module.imports]]
-  path = 'github.com/weastur/hugo-texify2'
-```
-
-load/update theme module
-
-```bash
-hugo mod get -u github.com/weastur/hugo-texify2
-```
-
-See [`hugo.toml`](https://github.com/weastur/hugo-texify2/blob/master/hugo.toml)
-for an example configuration.
-
-## Development
-
-Install `pre-commit`
-
-```bash
-pre-commit install
-make dev
-```
-
-## Acknowledgement
-
-The following software inspires the design of this theme:
-
-- <https://github.com/vincentdoerig/latex-css>
-- <https://github.com/7ma7X/HugoTeX>
-- <https://theme.typora.io/theme/Academic/>
-- <https://github.com/queensferryme/hugo-theme-texify>
-- <https://sharingbuttons.io>
+You can find me here:
+1. [Twitter/X](https://twitter.com/sloppyquorum)
+2. [Github](https://github.com/RahulKushwaha/)
+3. [LinkedIn](https://www.linkedin.com/in/rahul-kushwaha-589a0741/)
