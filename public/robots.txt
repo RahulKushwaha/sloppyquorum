@@ -1,0 +1,2 @@
+User-agent: *
+Sitemap: https://texify2.io/sitemap.xml

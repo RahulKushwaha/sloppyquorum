@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en" style="font-size: 120%">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  <meta name="author" content="Rahul Kushwaha">
+
+  
+  
+  <meta name="description" content="How to map a Relational Table on a Key-Value Store? ">
+  
+
+  
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+  
+  
+  <meta name="keywords" content="hugo latex theme blog texify texify2 weastur">
+  
+
+  
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script type="module">
+    import renderMathInElement from "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.mjs";
+    renderMathInElement(document.body);
+</script>
+
+  
+
+  
+  
+
+  
+  <meta property="og:url" content="https://texify2.io/post/c&#43;&#43;_ranges_itr/">
+  <meta property="og:site_name" content="sloppy quorum">
+  <meta property="og:title" content="Convert hasNext style iterator to C&#43;&#43; Range">
+  <meta property="og:description" content="How to map a Relational Table on a Key-Value Store? ">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2024-02-05T00:00:00+00:00">
+    <meta property="article:modified_time" content="2024-06-05T23:10:15-07:00">
+    <meta property="article:tag" content="C&#43;&#43;">
+    <meta property="article:tag" content="Ranges">
+    <meta property="og:image" content="https://texify2.io/images/logo.jpg">
+
+
+  
+  <link rel="canonical" href="https://texify2.io/post/c&#43;&#43;_ranges_itr/">
+
+  
+  
+  
+  <meta itemprop="name" content="Convert hasNext style iterator to C&#43;&#43; Range">
+  <meta itemprop="description" content="How to map a Relational Table on a Key-Value Store? ">
+  <meta itemprop="datePublished" content="2024-02-05T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2024-06-05T23:10:15-07:00">
+  <meta itemprop="wordCount" content="412">
+  <meta itemprop="image" content="https://texify2.io/images/logo.jpg">
+  <meta itemprop="keywords" content="C&#43;&#43;,Ranges">
+
+  
+  <link media="screen" rel="stylesheet" href='https://texify2.io/css/common.css'>
+  <link media="screen" rel="stylesheet" href='https://texify2.io/css/content.css'>
+
+  
+  
+  <title>Convert hasNext style iterator to C&#43;&#43; Range - sloppy quorum</title>
+  
+
+  
+  
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://texify2.io/images/logo.jpg">
+  <meta name="twitter:title" content="Convert hasNext style iterator to C&#43;&#43; Range">
+  <meta name="twitter:description" content="How to map a Relational Table on a Key-Value Store? ">
+
+
+  
+<link rel="stylesheet" href='https://texify2.io/css/single.css'>
+<link rel="stylesheet" href='https://texify2.io/css/sharingbuttons.css'>
+
+</head>
+
+<body>
+  <div id="wrapper">
+    
+
+
+<header id="header">
+  <h1>
+    <a href="https://texify2.io/">Sloppy Quorum</a>
+  </h1>
+
+  <nav>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/">Posts</a>
+    </span>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/post/">Archive</a>
+    </span>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/about/">About</a>
+    </span>
+    
+  </nav>
+  
+</header>
+
+    
+<main id="main" class="post">
+  
+  <h1>Convert hasNext style iterator to C&#43;&#43; Range</h1>
+  
+  <div>
+    
+    <a class="link" href='https://texify2.io/tags/c&#43;&#43;'>#c&#43;&#43;</a>
+    
+    <a class="link" href='https://texify2.io/tags/ranges'>#ranges</a>
+    
+  </div>
+  
+  
+  
+  
+  <article class="content numbered-subtitles">
+    
+    <p>This is a very short article on how to convert a hasNext style iterator to a ranges object. Imagine we have an iterator of the following form:</p>
+<pre tabindex="0"><code>struct Iterator {
+  std::uint64_t next() {
+    return (seed++);
+  }
+
+  bool hasNext() const {
+    return seed &lt; limit;
+  }
+
+ private:
+  std::uint64_t seed{0};
+  std::uint64_t limit{50};
+};
+</code></pre><p>The above iterator generates numbers until we reach the limit. The usual way to access the elements is to call hasNext , which checks if there are more elements, and based on its value call next to fetch the next element. A simple function shown below describes the pattern.</p>
+<pre tabindex="0"><code>void fun() {
+  Iterator itr;
+  while (itr.hasNext()) {
+    std::cout &lt;&lt; itr.next() &lt;&lt; &#34;\n&#34;; // Do something with element.
+  }
+}
+</code></pre><p>One of the many ways to convert this iterator to ranges is to use ranges::view::generate method.</p>
+<pre tabindex="0"><code>std::uint64_t seed{0};
+auto infiniteRange = ranges::views::generate([seed]() mutable {
+  return seed++;
+});
+</code></pre><p>The code shown above captures seed via copy and keeps on generating number lazily. It represents an infinite sequence of lazily generated numbers.</p>
+<p>Now we can augment the above range to generate only n elements by using takeWhile . The code shown below generates 5 elements when iterated over(remember all the elements are created lazily).</p>
+<pre tabindex="0"><code>std::uint64_t seed{0};
+auto only5Elements =
+    ranges::views::generate([seed]() mutable { return seed++; }) |
+    ranges::views::take_while([](auto x) { return x &lt; 5; });
+</code></pre><p>Combining the above techniques we can convert a hasNext style iterator to a range using the code shown below.</p>
+<pre tabindex="0"><code>Iterator itr{};
+ranges::views::generate([itr]() mutable -&gt; std::optional&lt;uint64_t&gt; {
+  // Generate optional of values until hasNext is true.
+  if (itr.hasNext()) {
+    return itr.next();
+  }
+
+  // Otherwise generate empty optionals.
+  return std::nullopt;
+}) |
+    // take_while makes sure that we are taking the elements
+    // only until optional is not empty.
+    ranges::views::take_while(
+        [](auto element) -&gt; bool { return element.has_value(); }) |
+    // Extract the value from the optional using transform.
+    ranges::views::transform([](auto element) {
+      return element.value();
+    });
+</code></pre><p>The above code can be understood via the following 3 steps:</p>
+<p>Create an infinite range of optional<element> using generate . When the underlying iterator does not have any element, hasNext is false, generator will start emitting empty optionals.
+Augment the above range to continue iterating over the elements while the optional contains a value. Otherwise, stop. Another way to look at this is to think empty optional as a stopping condition. A sentinel value.
+Unwrap the value from optional.
+Using the above pattern we can convert a simple hasNext style iterator to a range.</p>
+<p>Further readings:</p>
+<ol>
+<li><a href="https://www.walletfox.com/course/quickref_range_v3.php">https://www.walletfox.com/course/quickref_range_v3.php</a></li>
+<li><a href="https://ericniebler.github.io/range-v3/index.html">https://ericniebler.github.io/range-v3/index.html</a></li>
+</ol>
+
+    
+  </article>
+  
+
+<div id="sharingbuttons">
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://twitter.com/intent/tweet/?text=Convert%20hasNext%20style%20iterator%20to%20C%2b%2b%20Range&amp;url=https%3a%2f%2ftexify2.io%2fpost%2fc%2b%2b_ranges_itr%2f"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--twitter resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path
+              d="M23.44 4.83c-.8.37-1.5.38-2.22.02.93-.56.98-.96 1.32-2.02-.88.52-1.86.9-2.9 1.1-.82-.88-2-1.43-3.3-1.43-2.5 0-4.55 2.04-4.55 4.54 0 .36.03.7.1 1.04-3.77-.2-7.12-2-9.36-4.75-.4.67-.6 1.45-.6 2.3 0 1.56.8 2.95 2 3.77-.74-.03-1.44-.23-2.05-.57v.06c0 2.2 1.56 4.03 3.64 4.44-.67.2-1.37.2-2.06.08.58 1.8 2.26 3.12 4.25 3.16C5.78 18.1 3.37 18.74 1 18.46c2 1.3 4.4 2.04 6.97 2.04 8.35 0 12.92-6.92 12.92-12.93 0-.2 0-.4-.02-.6.9-.63 1.96-1.22 2.56-2.14z"/>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://www.linkedin.com/sharing/share-offsite/?url=https%3a%2f%2ftexify2.io%2fpost%2fc%2b%2b_ranges_itr%2f"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--linkedin resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path
+              d="M6.5 21.5h-5v-13h5v13zM4 6.5C2.5 6.5 1.5 5.3 1.5 4s1-2.4 2.5-2.4c1.6 0 2.5 1 2.6 2.5 0 1.4-1 2.5-2.6 2.5zm11.5 6c-1 0-2 1-2 2v7h-5v-13h5V10s1.6-1.5 4-1.5c3 0 5 2.2 5 6.3v6.7h-5v-7c0-1-1-2-2-2z"/>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://news.ycombinator.com/submitlink?u=https%3a%2f%2ftexify2.io%2fpost%2fc%2b%2b_ranges_itr%2f&amp;t=Convert%20hasNext%20style%20iterator%20to%20C%2b%2b%20Range"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--hackernews resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140">
+          <path fill-rule="evenodd"
+                d="M60.94 82.314L17 0h20.08l25.85 52.093c.397.927.86 1.888 1.39 2.883.53.994.995 2.02 1.393 3.08.265.4.463.764.596 1.095.13.334.262.63.395.898.662 1.325 1.26 2.618 1.79 3.877.53 1.26.993 2.42 1.39 3.48 1.06-2.254 2.22-4.673 3.48-7.258 1.26-2.585 2.552-5.27 3.877-8.052L103.49 0h18.69L77.84 83.308v53.087h-16.9v-54.08z"></path>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+</div>
+
+  <div class="paginator">
+    
+    <a class="link" href="https://texify2.io/post/c&#43;&#43;_copy_elision/">← prev</a>
+    
+    
+    <a></a>
+    
+  </div>
+  <div class="comment">
+    
+    
+    
+    
+  </div>
+  
+
+</main>
+
+    <footer id="footer">
+  <div>
+    <span>© 2024</span> - <span>2024</span>
+  </div>
+
+  <div class="footnote">
+    <span>Follow me on <a class=link href=https://github.com/RahulKushwaha/ target=_blank rel=noopener>GitHub</a>,
+<a class=link href=https://twitter.com/sloppyquorum target=_blank rel=noopener>X</a> |
+<a class=link href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en target=_blank rel=noopener>CC BY-NC-SA 4.0</a>
+</span>
+  </div>
+</footer>
+
+  </div>
+
+  
+  
+
+  
+  
+
+  
+  
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-0GZRVRLSQV"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-0GZRVRLSQV');
+        }
+      </script>
+    
+  
+
+
+
+</body>
+
+</html>

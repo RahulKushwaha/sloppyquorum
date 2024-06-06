@@ -1,0 +1,42 @@
+baseURL = "https://texify2.io"
+disqusShortname = ""
+enableGitInfo = true
+enableRobotsTXT = true
+googleAnalytics = "G-0GZRVRLSQV"
+hasCJKLanguage = true
+languageCode = "en"
+paginate = 25
+rssLimit = 10
+theme = "hugo-texify2"
+title = "sloppy quorum"
+
+[markup]
+defaultMarkdownHandler = "goldmark"
+[markup.goldmark.renderer]
+unsafe= true
+[markup.highlight]
+style = "tango"
+[markup.tableOfContents]
+endLevel = 6
+ordered = false
+startLevel = 2
+
+[author]
+email = "rahul.kushwaha@gmail.com"
+name = "Rahul Kushwaha"
+
+[params]
+title = "Sloppy Quorum"
+enableDuckDuckGoSearchBox = false
+numberedSubtitles = true
+toc = true
+footnote = """
+Follow me on <a class=link href=https://github.com/RahulKushwaha/ target=_blank rel=noopener>GitHub</a>,
+<a class=link href=https://twitter.com/sloppyquorum target=_blank rel=noopener>X</a> |
+<a class=link href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en target=_blank rel=noopener>CC BY-NC-SA 4.0</a>
+"""
+
+[params.commentEngine]
+
+[params.buymeacoffee]
+code = ""

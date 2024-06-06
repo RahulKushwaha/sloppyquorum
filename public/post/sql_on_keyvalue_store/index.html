@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en" style="font-size: 120%">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  <meta name="author" content="Rahul Kushwaha">
+
+  
+  
+  <meta name="description" content="How to map a Relational Table on a Key-Value Store? ">
+  
+
+  
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+  
+  
+  <meta name="keywords" content="hugo latex theme blog texify texify2 weastur">
+  
+
+  
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script type="module">
+    import renderMathInElement from "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.mjs";
+    renderMathInElement(document.body);
+</script>
+
+  
+
+  
+  
+
+  
+  <meta property="og:url" content="http://localhost:1313/post/sql_on_keyvalue_store/">
+  <meta property="og:site_name" content="sloppy quorum">
+  <meta property="og:title" content="Map relational table on a key value store">
+  <meta property="og:description" content="How to map a Relational Table on a Key-Value Store? ">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2024-02-05T00:00:00+00:00">
+    <meta property="article:modified_time" content="2024-02-05T00:00:00+00:00">
+    <meta property="article:tag" content="Database">
+    <meta property="og:image" content="http://localhost:1313/images/logo.jpg">
+
+
+  
+  <link rel="canonical" href="http://localhost:1313/post/sql_on_keyvalue_store/">
+
+  
+  
+  
+  <meta itemprop="name" content="Map relational table on a key value store">
+  <meta itemprop="description" content="How to map a Relational Table on a Key-Value Store? ">
+  <meta itemprop="datePublished" content="2024-02-05T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2024-02-05T00:00:00+00:00">
+  <meta itemprop="wordCount" content="503">
+  <meta itemprop="image" content="http://localhost:1313/images/logo.jpg">
+  <meta itemprop="keywords" content="Database">
+
+  
+  <link media="screen" rel="stylesheet" href='http://localhost:1313/css/common.css'>
+  <link media="screen" rel="stylesheet" href='http://localhost:1313/css/content.css'>
+
+  
+  
+  <title>Map relational table on a key value store - sloppy quorum</title>
+  
+
+  
+  
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/images/logo.jpg">
+  <meta name="twitter:title" content="Map relational table on a key value store">
+  <meta name="twitter:description" content="How to map a Relational Table on a Key-Value Store? ">
+
+
+  
+<link rel="stylesheet" href='http://localhost:1313/css/single.css'>
+<link rel="stylesheet" href='http://localhost:1313/css/sharingbuttons.css'>
+
+</head>
+
+<body>
+  <div id="wrapper">
+    
+
+
+<header id="header">
+  <h1>
+    <a href="http://localhost:1313/">Sloppy Quorum</a>
+  </h1>
+
+  <nav>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/">Posts</a>
+    </span>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/post/">Archive</a>
+    </span>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/about/">About</a>
+    </span>
+    
+  </nav>
+  
+</header>
+
+    
+<main id="main" class="post">
+  
+  <h1>Map relational table on a key value store</h1>
+  
+  <div>
+    
+    <a class="link" href='http://localhost:1313/tags/database'>#database</a>
+    
+  </div>
+  
+  
+  
+  <details>
+    <summary>
+      <b>Table of Contents</b>
+    </summary>
+    <div class="toc numbered-subtitles"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#primary-key">Primary Key</a></li>
+    <li><a href="#composite-primary-key">Composite Primary Key</a></li>
+    <li><a href="#secondary-index">Secondary Index</a></li>
+    <li><a href="#query-patterns">Query Patterns</a>
+      <ul>
+        <li>
+          <ul>
+            <li><a href="#pattern-1">Pattern #1</a></li>
+            <li><a href="#pattern-2">Pattern #2</a></li>
+            <li><a href="#pattern-3">Pattern #3</a></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+  </details>
+  
+  
+  <article class="content numbered-subtitles">
+    
+    <p>To implement table abstraction on top of the KeyValue store, we need to map table rows to a set of key values. We can use the following example as an illustration.</p>
+<p>Table:</p>
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>FirstName</th>
+<th>LastName</th>
+<th>Address</th>
+<th>SSN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Mary</td>
+<td>Jane</td>
+<td>Heaven</td>
+<td>9088</td>
+</tr>
+<tr>
+<td>2</td>
+<td>John</td>
+<td>Doe</td>
+<td>Hell</td>
+<td>9678</td>
+</tr>
+</tbody>
+</table>
+<h2 id="primary-key">Primary Key</h2>
+<p>Primary Key: Id</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1/Mary/FirstName</td>
+<td>Mary</td>
+</tr>
+<tr>
+<td>1/Mary/LastName</td>
+<td>Jane</td>
+</tr>
+<tr>
+<td>1/Mary/Address</td>
+<td>Heaven</td>
+</tr>
+<tr>
+<td>1/Mary/SSN</td>
+<td>9088</td>
+</tr>
+<tr>
+<td>2/John/FirstName</td>
+<td>John</td>
+</tr>
+<tr>
+<td>2/John/LastName</td>
+<td>Doe</td>
+</tr>
+<tr>
+<td>2/John/Address</td>
+<td>Hell</td>
+</tr>
+<tr>
+<td>2/John/SSN</td>
+<td>9678</td>
+</tr>
+</tbody>
+</table>
+<p>As we can see in the above diagram, we are converting a single row to a bunch of key value pairs. We can think of table rows as a N x M matrix where N is the number of rows and M is the number of columns, and keypairs as a K x 2 matrix where K is the total number of key value pairs.</p>
+<p>Format</p>
+<p><strong>Key</strong>: db_id/tbl_id/primary_col_id/primary_col_value/col_id <br>
+<strong>Value</strong>: column value</p>
+<p>Using the above formatting scheme we can convert each column value of a row into a unique key value pair. Prepending db_id and tbl_id to each key is to make sure that we can prevent collisions between different tables and databases.</p>
+<h2 id="composite-primary-key">Composite Primary Key</h2>
+<p>The above example showcased a primary key that is composed of only one column. When a row is uniquely identified by a bunch of columns, it is called a Composite Primary Key.</p>
+<p>Table:</p>
+<table>
+<thead>
+<tr>
+<th>FirstName</th>
+<th>LastName</th>
+<th>Address</th>
+<th>SSN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mary</td>
+<td>Jane</td>
+<td>Heaven</td>
+<td>9088</td>
+</tr>
+<tr>
+<td>John</td>
+<td>Doe</td>
+<td>Hell</td>
+<td>9678</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Primary Key</strong>: (FirstName, LastName)</p>
+<p>Therefore, to create a unique key we have to utilize all the primary
+column values.</p>
+<p>Format</p>
+<p><strong>Key</strong>: db_id/tbl_id/primary_col1_id/primary_col1_value
+/primary_col2_id
+/primary_col2_value/primary_col3_id/primary_col3_value/col_id <br>
+<strong>Value</strong>: column value</p>
+<h2 id="secondary-index">Secondary Index</h2>
+<p>Secondary indexes provide another way to query the table using another
+set of columns in addition to the primary key index.</p>
+<p>Format</p>
+<p><strong>Key</strong>: db_id/tbl_id/secondary_index_col1_id/secondary_index_col1_value/secondary_index_col2_id/secondary_index_col2_value/secondary_index_col3_id/secondary_index_col3_value/primary_col1_id/primary_col1_value/primary_col2_id/primary_col2_value/primary_col3_id/primary_col3_value/ <br>
+<strong>Value</strong>: NULL</p>
+<p>We would like to make sure that all the rows corresponding to a
+particular index are clubbed together. To ensure this grouping we can
+introduce index_id that uniquely identifies an index and use it in the
+key prefix.</p>
+<p>Primary Key Index</p>
+<p>Format</p>
+<p><strong>Key</strong>:
+db_id/tbl_id/index_id/primary_col1_id/primary_col1_value/primary_col2_id/primary_col2_value/primary_col3_id/primary_col3_value/col_id
+Value: column value</p>
+<p>Secondary Key Index</p>
+<p>Format</p>
+<p><strong>Key</strong>:
+db_id/tbl_id/index_id/secondary_index_col1_id/secondary_index_col1_value/secondary_index_col2_id/secondary_index_col2_value/secondary_index_col3_id/secondary_index_col3_value/primary_col1_id/primary_col1_value/primary_col2_id/primary_col2_value/primary_col3_id/primary_col3_value/
+<strong>Value</strong>: NULL</p>
+<p>All the keys belonging to a particular index will be grouped together
+as they will have the same prefix, db_id/tbl_id/index_id.</p>
+<p>Let’s apply the above logic to a sample table row.</p>
+<p>Table:</p>
+<table>
+<thead>
+<tr>
+<th>FirstName</th>
+<th>LastName</th>
+<th>Address</th>
+<th>SSN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mary</td>
+<td>Jane</td>
+<td>Heaven</td>
+<td>9088</td>
+</tr>
+<tr>
+<td>John</td>
+<td>Doe</td>
+<td>Hell</td>
+<td>9678</td>
+</tr>
+</tbody>
+</table>
+<p>Db Index: 1 <br>
+Table Index: 1 <br>
+Primary Key Index: <br>
+Id: 0 <br>
+Columns: (FirstName, LastName)</p>
+<p>Secondary Key Index: <br>
+Id: 1 <br>
+Columns: (SSN, LastName)</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1/1/0/FirstName/Mary/LastName/Jane/FirstName</td>
+<td>Mary</td>
+</tr>
+<tr>
+<td>1/1/0/FirstName/Mary/LastName/Jane/LastName</td>
+<td>Jane</td>
+</tr>
+<tr>
+<td>1/1/0/FirstName/Mary/LastName/Jane/Address</td>
+<td>Heaven</td>
+</tr>
+<tr>
+<td>1/1/0/FirstName/Mary/LastName/Jane/SSN</td>
+<td>9088</td>
+</tr>
+<tr>
+<td>1/1/0/FirstName/John/LastName/Doe/FirstName</td>
+<td>John</td>
+</tr>
+<tr>
+<td>1/1/0/FirstName/John/LastName/Doe/LastName</td>
+<td>Doe</td>
+</tr>
+<tr>
+<td>1/1/0/FirstName/John/LastName/Doe/Address</td>
+<td>Hell</td>
+</tr>
+<tr>
+<td>1/1/0/FirstName/John/LastName/Doe/SSN</td>
+<td>9678</td>
+</tr>
+<tr>
+<td>1/1/1/SSN/9088/LastName/Jane/FirstName/Mary/LastName/Jane</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>1/1/1/SSN/9678/LastName/Doe/FirstName/John/LastName/Doe</td>
+<td>NULL</td>
+</tr>
+</tbody>
+</table>
+<h2 id="query-patterns">Query Patterns</h2>
+<h4 id="pattern-1">Pattern #1</h4>
+<p>Fetch rows using primary keys.</p>
+<h4 id="pattern-2">Pattern #2</h4>
+<p>Fetch all the rows using the primary key index.
+All the keys matching the prefix db_id/tbl_id/index_id.</p>
+<h4 id="pattern-3">Pattern #3</h4>
+<p>Fetch all the rows using the secondary key index.
+All the keys matching the prefix db_id/tbl_id/index_id.
+The keys fetched above will allow us to fetch the primary keys of the
+corresponding rows.
+Using the primary keys, Pattern #1, we can fetch rows corresponding to
+the primary keys.</p>
+
+    
+  </article>
+  
+
+<div id="sharingbuttons">
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://twitter.com/intent/tweet/?text=Map%20relational%20table%20on%20a%20key%20value%20store&amp;url=http%3a%2f%2flocalhost%3a1313%2fpost%2fsql_on_keyvalue_store%2f"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--twitter resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path
+              d="M23.44 4.83c-.8.37-1.5.38-2.22.02.93-.56.98-.96 1.32-2.02-.88.52-1.86.9-2.9 1.1-.82-.88-2-1.43-3.3-1.43-2.5 0-4.55 2.04-4.55 4.54 0 .36.03.7.1 1.04-3.77-.2-7.12-2-9.36-4.75-.4.67-.6 1.45-.6 2.3 0 1.56.8 2.95 2 3.77-.74-.03-1.44-.23-2.05-.57v.06c0 2.2 1.56 4.03 3.64 4.44-.67.2-1.37.2-2.06.08.58 1.8 2.26 3.12 4.25 3.16C5.78 18.1 3.37 18.74 1 18.46c2 1.3 4.4 2.04 6.97 2.04 8.35 0 12.92-6.92 12.92-12.93 0-.2 0-.4-.02-.6.9-.63 1.96-1.22 2.56-2.14z"/>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://www.linkedin.com/sharing/share-offsite/?url=http%3a%2f%2flocalhost%3a1313%2fpost%2fsql_on_keyvalue_store%2f"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--linkedin resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path
+              d="M6.5 21.5h-5v-13h5v13zM4 6.5C2.5 6.5 1.5 5.3 1.5 4s1-2.4 2.5-2.4c1.6 0 2.5 1 2.6 2.5 0 1.4-1 2.5-2.6 2.5zm11.5 6c-1 0-2 1-2 2v7h-5v-13h5V10s1.6-1.5 4-1.5c3 0 5 2.2 5 6.3v6.7h-5v-7c0-1-1-2-2-2z"/>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://news.ycombinator.com/submitlink?u=http%3a%2f%2flocalhost%3a1313%2fpost%2fsql_on_keyvalue_store%2f&amp;t=Map%20relational%20table%20on%20a%20key%20value%20store"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--hackernews resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140">
+          <path fill-rule="evenodd"
+                d="M60.94 82.314L17 0h20.08l25.85 52.093c.397.927.86 1.888 1.39 2.883.53.994.995 2.02 1.393 3.08.265.4.463.764.596 1.095.13.334.262.63.395.898.662 1.325 1.26 2.618 1.79 3.877.53 1.26.993 2.42 1.39 3.48 1.06-2.254 2.22-4.673 3.48-7.258 1.26-2.585 2.552-5.27 3.877-8.052L103.49 0h18.69L77.84 83.308v53.087h-16.9v-54.08z"></path>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+</div>
+
+  <div class="paginator">
+    
+    <a></a>
+    
+    
+    <a class="link" href="http://localhost:1313/post/c&#43;&#43;_copy_elision/">next →</a>
+    
+  </div>
+  <div class="comment">
+    
+    
+    
+    
+  </div>
+  
+
+</main>
+
+    <footer id="footer">
+  <div>
+    <span>© 2023</span> - <span>2024</span>
+  </div>
+
+  <div class="footnote">
+    <span>Follow me on <a class=link href=https://github.com/RahulKushwaha/ target=_blank rel=noopener>GitHub</a>,
+<a class=link href=https://twitter.com/sloppyquorum target=_blank rel=noopener>X</a> |
+<a class=link href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en target=_blank rel=noopener>CC BY-NC-SA 4.0</a>
+</span>
+  </div>
+</footer>
+
+  </div>
+
+  
+  
+
+  
+  
+
+  
+  
+  
+    
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-0GZRVRLSQV"></script>
+      <script>
+        var doNotTrack = false;
+        if ( false ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-0GZRVRLSQV');
+        }
+      </script>
+    
+  
+
+
+
+</body>
+
+</html>

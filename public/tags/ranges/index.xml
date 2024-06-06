@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ranges on sloppy quorum</title>
+    <link>https://texify2.io/tags/ranges/</link>
+    <description>Recent content in Ranges on sloppy quorum</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <managingEditor>rahul.kushwaha@gmail.com (Rahul Kushwaha)</managingEditor>
+    <webMaster>rahul.kushwaha@gmail.com (Rahul Kushwaha)</webMaster>
+    <lastBuildDate>Mon, 05 Feb 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://texify2.io/tags/ranges/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Convert hasNext style iterator to C&#43;&#43; Range</title>
+      <link>https://texify2.io/post/c&#43;&#43;_ranges_itr/</link>
+      <pubDate>Mon, 05 Feb 2024 00:00:00 +0000</pubDate>
+      <author>rahul.kushwaha@gmail.com (Rahul Kushwaha)</author>
+      <guid>https://texify2.io/post/c&#43;&#43;_ranges_itr/</guid>
+      <description>Key-value stores provide a generic API to store and retrieve values using the key. In this post, we will see how relational tables can be mapped to key-value stores.</description>
+    </item>
+    
+  </channel>
+</rss>
