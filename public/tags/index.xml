@@ -2,12 +2,12 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Tags on sloppy quorum</title>
-    <link>https://texify2.io/tags/</link>
+    <link>https://sloppyquorum.com/tags.html</link>
     <description>Recent content in Tags on sloppy quorum</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <managingEditor>rahul.kushwaha@gmail.com (Rahul Kushwaha)</managingEditor>
     <webMaster>rahul.kushwaha@gmail.com (Rahul Kushwaha)</webMaster>
-    <lastBuildDate>Mon, 05 Feb 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://texify2.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 05 Feb 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sloppyquorum.com/tags/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>

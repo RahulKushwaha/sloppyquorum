@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: https://texify2.io/sitemap.xml
+Sitemap: https://sloppyquorum.com/sitemap.xml

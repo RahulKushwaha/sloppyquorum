@@ -1,4 +1,4 @@
-baseURL = "https://texify2.io"
+baseURL = "https://sloppyquorum.com/"
 disqusShortname = ""
 enableGitInfo = true
 enableRobotsTXT = true
@@ -9,6 +9,7 @@ paginate = 25
 rssLimit = 10
 theme = "hugo-texify2"
 title = "sloppy quorum"
+uglyURLs = true
 
 [markup]
 defaultMarkdownHandler = "goldmark"

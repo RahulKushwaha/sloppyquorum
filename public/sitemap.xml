@@ -2,30 +2,30 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://texify2.io/about/</loc>
+    <loc>https://sloppyquorum.com/about.html</loc>
     <lastmod>2024-06-05T23:10:15-07:00</lastmod>
   </url><url>
-    <loc>https://texify2.io/</loc>
+    <loc>https://sloppyquorum.com/</loc>
     <lastmod>2024-06-05T23:10:15-07:00</lastmod>
   </url><url>
-    <loc>https://texify2.io/tags/c&#43;&#43;/</loc>
+    <loc>https://sloppyquorum.com/tags/c&#43;&#43;.html</loc>
+    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://sloppyquorum.com/post/cpp_ranges_itr.html</loc>
+    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://sloppyquorum.com/post/cpp_copy_elision.html</loc>
+    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://sloppyquorum.com/post.html</loc>
     <lastmod>2024-06-05T23:10:15-07:00</lastmod>
   </url><url>
-    <loc>https://texify2.io/post/c&#43;&#43;_ranges_itr/</loc>
-    <lastmod>2024-06-05T23:10:15-07:00</lastmod>
+    <loc>https://sloppyquorum.com/tags/ranges.html</loc>
+    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://texify2.io/post/c&#43;&#43;_copy_elision/</loc>
-    <lastmod>2024-06-05T23:10:15-07:00</lastmod>
+    <loc>https://sloppyquorum.com/tags.html</loc>
+    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://texify2.io/post/</loc>
-    <lastmod>2024-06-05T23:10:15-07:00</lastmod>
-  </url><url>
-    <loc>https://texify2.io/tags/ranges/</loc>
-    <lastmod>2024-06-05T23:10:15-07:00</lastmod>
-  </url><url>
-    <loc>https://texify2.io/tags/</loc>
-    <lastmod>2024-06-05T23:10:15-07:00</lastmod>
-  </url><url>
-    <loc>https://texify2.io/categories/</loc>
+    <loc>https://sloppyquorum.com/categories.html</loc>
   </url>
 </urlset>

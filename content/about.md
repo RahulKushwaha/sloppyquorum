@@ -44,8 +44,12 @@ I am an active member of the DistSys Reading Group. We read and discuss one dist
 Come & join us: [Link](https://charap.co/reading-group)
 
 #### My Presentations:
-1. [Polaris: Enabling Transaction Priority in Optimistic Concurrency Control](https://pages.cs.wisc.edu/~chenhaoy/publication/polaris/)[![](https://markdown-videos-api.jorgenkh.no/youtube/E9BJF9Tu6n8)](https://www.youtube.com/embed/E9BJF9Tu6n8?si=AqKcty9Pfm7iVMFr)
-2. [Morty: Scaling Concurrency Control with Re-Execution](https://www.cs.cornell.edu/lorenzo/papers/Burke23Morty.pdf)[![](https://markdown-videos-api.jorgenkh.no/youtube/49QJSkrMKNc)](https://youtu.be/49QJSkrMKNc?si=yOe6tVt_tLuZ9x1D)
+1. [Polaris: Enabling Transaction Priority in Optimistic Concurrency Control](https://pages.cs.wisc.edu/~chenhaoy/publication/polaris/)  
+[Slides](./polaris_slides.pdf)  
+[![](https://markdown-videos-api.jorgenkh.no/youtube/E9BJF9Tu6n8)](https://www.youtube.com/embed/E9BJF9Tu6n8?si=AqKcty9Pfm7iVMFr)
+2. [Morty: Scaling Concurrency Control with Re-Execution](https://www.cs.cornell.edu/lorenzo/papers/Burke23Morty.pdf)  
+[Slides](./morty_slides.pdf)  
+[![](https://markdown-videos-api.jorgenkh.no/youtube/49QJSkrMKNc)](https://youtu.be/49QJSkrMKNc?si=yOe6tVt_tLuZ9x1D)
 3. *[Coming Soon]* [Understanding the Performance Implications of the Design Principles in Storage-Disaggregated Databases](https://www.cs.purdue.edu/homes/csjgwang/pubs/SIGMOD24_OpenAurora.pdf)
 
 ### Database Book Club
