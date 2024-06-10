@@ -1,7 +1,7 @@
 +++
 author = "Rahul Kushwaha"
 title = "Convert hasNext style iterator to C++ Range"
-date = "2024-02-05"
+date = "2024-06-09"
 description = "How to map a Relational Table on a Key-Value Store? "
 tags = [
     "c++",

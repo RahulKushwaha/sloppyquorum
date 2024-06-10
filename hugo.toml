@@ -9,7 +9,7 @@ paginate = 25
 rssLimit = 10
 theme = "hugo-texify2"
 title = "sloppy quorum"
-uglyURLs = true
+uglyURLs = false
 
 [markup]
 defaultMarkdownHandler = "goldmark"

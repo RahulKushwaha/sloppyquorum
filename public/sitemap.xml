@@ -2,30 +2,30 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://sloppyquorum.com/about.html</loc>
-    <lastmod>2024-06-05T23:10:15-07:00</lastmod>
+    <loc>https://sloppyquorum.com/tags/c&#43;&#43;/</loc>
+    <lastmod>2024-06-09T00:06:51-07:00</lastmod>
+  </url><url>
+    <loc>https://sloppyquorum.com/post/cpp_ranges_itr/</loc>
+    <lastmod>2024-06-09T00:06:51-07:00</lastmod>
+  </url><url>
+    <loc>https://sloppyquorum.com/post/</loc>
+    <lastmod>2024-06-09T00:06:51-07:00</lastmod>
+  </url><url>
+    <loc>https://sloppyquorum.com/tags/ranges/</loc>
+    <lastmod>2024-06-09T00:06:51-07:00</lastmod>
   </url><url>
     <loc>https://sloppyquorum.com/</loc>
-    <lastmod>2024-06-05T23:10:15-07:00</lastmod>
+    <lastmod>2024-06-09T00:06:51-07:00</lastmod>
   </url><url>
-    <loc>https://sloppyquorum.com/tags/c&#43;&#43;.html</loc>
-    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
+    <loc>https://sloppyquorum.com/tags/</loc>
+    <lastmod>2024-06-09T00:06:51-07:00</lastmod>
   </url><url>
-    <loc>https://sloppyquorum.com/post/cpp_ranges_itr.html</loc>
-    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
+    <loc>https://sloppyquorum.com/post/cpp_copy_elision/</loc>
+    <lastmod>2024-06-09T00:06:51-07:00</lastmod>
   </url><url>
-    <loc>https://sloppyquorum.com/post/cpp_copy_elision.html</loc>
-    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
+    <loc>https://sloppyquorum.com/about/</loc>
+    <lastmod>2024-06-09T00:06:51-07:00</lastmod>
   </url><url>
-    <loc>https://sloppyquorum.com/post.html</loc>
-    <lastmod>2024-06-05T23:10:15-07:00</lastmod>
-  </url><url>
-    <loc>https://sloppyquorum.com/tags/ranges.html</loc>
-    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://sloppyquorum.com/tags.html</loc>
-    <lastmod>2024-02-05T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://sloppyquorum.com/categories.html</loc>
+    <loc>https://sloppyquorum.com/categories/</loc>
   </url>
 </urlset>

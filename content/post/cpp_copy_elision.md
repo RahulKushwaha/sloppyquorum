@@ -1,7 +1,7 @@
 +++
 author = "Rahul Kushwaha"
 title = "Copy Elision in C++"
-date = "2024-02-05"
+date = "2024-06-01"
 description = "How to map a Relational Table on a Key-Value Store? "
 tags = [
     "c++"

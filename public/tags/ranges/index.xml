@@ -2,19 +2,19 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Ranges on sloppy quorum</title>
-    <link>https://sloppyquorum.com/tags/ranges.html</link>
+    <link>https://sloppyquorum.com/tags/ranges/</link>
     <description>Recent content in Ranges on sloppy quorum</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <managingEditor>rahul.kushwaha@gmail.com (Rahul Kushwaha)</managingEditor>
     <webMaster>rahul.kushwaha@gmail.com (Rahul Kushwaha)</webMaster>
-    <lastBuildDate>Mon, 05 Feb 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sloppyquorum.com/tags/ranges/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 09 Jun 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sloppyquorum.com/tags/ranges/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Convert hasNext style iterator to C&#43;&#43; Range</title>
-      <link>https://sloppyquorum.com/post/cpp_ranges_itr.html</link>
-      <pubDate>Mon, 05 Feb 2024 00:00:00 +0000</pubDate>
+      <link>https://sloppyquorum.com/post/cpp_ranges_itr/</link>
+      <pubDate>Sun, 09 Jun 2024 00:00:00 +0000</pubDate>
       <author>rahul.kushwaha@gmail.com (Rahul Kushwaha)</author>
-      <guid>https://sloppyquorum.com/post/cpp_ranges_itr.html</guid>
+      <guid>https://sloppyquorum.com/post/cpp_ranges_itr/</guid>
       <description>Key-value stores provide a generic API to store and retrieve values using the key. In this post, we will see how relational tables can be mapped to key-value stores.</description>
     </item>
     

@@ -23,7 +23,7 @@ customers requiring a highly available & linearizable store.
 Before that I was working at OfferUp handling the Identity & User
 Domain.
 
-For more details of my work: [Resume](./Kushwaha_Resume_05_02_2024.pdf)
+For more details of my work: [Resume](./rahul_kushwaha_resume.pdf)
 
 ## Personal
 ### MyDb
