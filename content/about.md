@@ -10,18 +10,20 @@ author = "Rahul Kushwaha"
 
 ## Professional
 
-I am a Staff Software Engineer at Reddit working in the Caching &
-Storage Infra Org.
-My current work involves providing Redis as an infrastructure
-using Kubernetes.
+I am a Database Internals Engineer at AWS, working on the storage
+team for [DSQL](https://aws.amazon.com/rds/aurora/dsql/), Amazon's
+distributed, strongly consistent SQL database.
 
-Previously, I worked with Meta/Facebook on their low-dependency
+Previously, I was a Staff Software Engineer at Reddit in the Caching
+& Storage Infra Org, where my work involved providing Redis as an
+infrastructure using Kubernetes.
+
+Before that, I worked at Meta/Facebook on their low-dependency
 metadata storage system called [DelosTable](https://engineering.fb.com/2019/06/06/data-center-engineering/delos/). This
-system provides a table-like(Relational) abstraction to our
-customers requiring a highly available & linearizable store.
+system provides a table-like (Relational) abstraction to customers
+requiring a highly available & linearizable store.
 
-Before that I was working at OfferUp handling the Identity & User
-Domain.
+Earlier, I was at OfferUp handling the Identity & User Domain.
 
 For more details of my work: [Resume](./rahul_kushwaha_resume.pdf)
 
@@ -50,7 +52,8 @@ Come & join us: [Link](https://charap.co/reading-group)
 2. [Morty: Scaling Concurrency Control with Re-Execution](https://www.cs.cornell.edu/lorenzo/papers/Burke23Morty.pdf)  
 [Slides](./morty_slides.pdf)  
 [![](https://markdown-videos-api.jorgenkh.no/youtube/49QJSkrMKNc)](https://youtu.be/49QJSkrMKNc?si=yOe6tVt_tLuZ9x1D)
-3. *[Coming Soon]* [Understanding the Performance Implications of the Design Principles in Storage-Disaggregated Databases](https://www.cs.purdue.edu/homes/csjgwang/pubs/SIGMOD24_OpenAurora.pdf)
+3. [Understanding the Performance Implications of the Design Principles in Storage-Disaggregated Databases](https://www.cs.purdue.edu/homes/csjgwang/pubs/SIGMOD24_OpenAurora.pdf)  
+[![](https://markdown-videos-api.jorgenkh.no/youtube/jJ6LqA5LGfg)](https://www.youtube.com/watch?v=jJ6LqA5LGfg)
 
 ### Database Book Club
 I actively participate, and help run a book club where we discuss all-things-databases.

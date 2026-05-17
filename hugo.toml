@@ -22,7 +22,7 @@ endLevel = 6
 ordered = false
 startLevel = 2
 
-[author]
+[params.author]
 email = "rahul.kushwaha@gmail.com"
 name = "Rahul Kushwaha"
 
@@ -31,6 +31,8 @@ title = "Sloppy Quorum"
 enableDuckDuckGoSearchBox = false
 numberedSubtitles = true
 toc = true
+customCSS = ["css/custom.css"]
+rootFontSize = "90%"
 footnote = """
 Follow me on <a class=link href=https://github.com/RahulKushwaha/ target=_blank rel=noopener>GitHub</a>,
 <a class=link href=https://twitter.com/sloppyquorum target=_blank rel=noopener>X</a> |

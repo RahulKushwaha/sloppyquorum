@@ -1,0 +1,95 @@
+/* ============================================================
+   Uniform typography scale.
+   Theme defaults spread sizes from 0.7rem to 2.8rem (4x range),
+   which reads inconsistent. This compresses everything into
+   roughly 0.9rem - 1.5rem and lets weight do the hierarchy.
+   ============================================================ */
+
+/* Article body headings (inside the .content wrapper). */
+.content h1 { font-size: 1.4rem; line-height: 1.3; }
+.content h2 { font-size: 1.2rem; line-height: 1.3; }
+.content h3 { font-size: 1.1rem; line-height: 1.3; }
+.content h4,
+.content h5,
+.content h6 { font-size: 1rem; line-height: 1.3; }
+
+/* Standalone post title on the article page (single.html
+   renders it outside .content). */
+#main.post > h1 { font-size: 1.7rem; line-height: 1.3; }
+
+/* Site header. */
+#header > h1 { font-size: 1.6rem; }
+@media screen and (min-width: 768px) {
+  #header > h1 { font-size: 1.6rem; }
+}
+#header > nav > span > a { font-size: 1rem; }
+
+/* Post-listing page (/post/) month-group headings. */
+#main.archive > .post-group > h2 { font-size: 1rem; }
+
+/* ============================================================
+   Home page post cards.
+   Sizes inherit from the global scale above; this section only
+   handles layout: stacking title and metadata vertically and
+   removing the theme's 2rem left indent on tags/summary.
+   ============================================================ */
+
+@media screen and (min-width: 768px) {
+  #main > .post > div {
+    margin-left: 0;
+  }
+}
+
+#main > .post + .post {
+  margin-top: 1rem;
+}
+
+#main > .post > h2 {
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 0.25rem;
+}
+
+#main > .post > h2 > div {
+  justify-content: flex-start;
+  font-size: 0.9rem;
+  font-weight: normal;
+  margin-top: 0.15rem;
+}
+
+#main > .post > h2 > div > span {
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+#main > .post > h2 > div > time {
+  font-size: 0.9rem;
+}
+
+#main > .post > h2 > div > span:first-child {
+  margin-left: 0;
+}
+
+#main > .post > .content {
+  padding-top: 0.25rem;
+}
+
+/* ============================================================
+   Wrap long lines in code blocks instead of horizontal scroll.
+   ============================================================ */
+.content pre,
+.content pre code {
+  overflow-x: visible;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Reserve vertical scrollbar space on every page so navigating
+   between short and long pages doesn't shift the centered header
+   sideways. scrollbar-gutter is modern but widely supported;
+   overflow-y: scroll is the universal fallback. */
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+}

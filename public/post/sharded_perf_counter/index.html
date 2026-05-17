@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" style="font-size: 90%">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  <meta name="author" content="Rahul Kushwaha">
+
+  
+  
+  <meta name="description" content="How a single atomic counter becomes a bottleneck under concurrent writes, and how cache-line-padded shards make it disappear.">
+  
+
+  
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+  
+  
+  <meta name="keywords" content="hugo latex theme blog texify texify2 weastur">
+  
+
+  
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script type="module">
+    import renderMathInElement from "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.mjs";
+    renderMathInElement(document.body);
+</script>
+
+  
+
+  
+  
+
+  
+  <meta property="og:url" content="https://sloppyquorum.com/post/sharded_perf_counter/">
+  <meta property="og:site_name" content="sloppy quorum">
+  <meta property="og:title" content="Killing Cache-Line Contention with Sharded Counters">
+  <meta property="og:description" content="How a single atomic counter becomes a bottleneck under concurrent writes, and how cache-line-padded shards make it disappear.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2026-05-17T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-05-17T00:00:00+00:00">
+    <meta property="article:tag" content="Rust">
+    <meta property="article:tag" content="Concurrency">
+    <meta property="article:tag" content="Performance">
+    <meta property="article:tag" content="Atomics">
+    <meta property="og:image" content="https://sloppyquorum.com/images/logo.jpg">
+
+
+  
+  <link rel="canonical" href="https://sloppyquorum.com/post/sharded_perf_counter/">
+
+  
+  
+  
+  <meta itemprop="name" content="Killing Cache-Line Contention with Sharded Counters">
+  <meta itemprop="description" content="How a single atomic counter becomes a bottleneck under concurrent writes, and how cache-line-padded shards make it disappear.">
+  <meta itemprop="datePublished" content="2026-05-17T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2026-05-17T00:00:00+00:00">
+  <meta itemprop="wordCount" content="1731">
+  <meta itemprop="image" content="https://sloppyquorum.com/images/logo.jpg">
+  <meta itemprop="keywords" content="Rust,Concurrency,Performance,Atomics">
+
+  
+  <link media="screen" rel="stylesheet" href='https://sloppyquorum.com/css/common.css'>
+  <link media="screen" rel="stylesheet" href='https://sloppyquorum.com/css/content.css'>
+
+  
+  
+  <title>Killing Cache-Line Contention with Sharded Counters - sloppy quorum</title>
+  
+
+  
+  
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://sloppyquorum.com/images/logo.jpg">
+  <meta name="twitter:title" content="Killing Cache-Line Contention with Sharded Counters">
+  <meta name="twitter:description" content="How a single atomic counter becomes a bottleneck under concurrent writes, and how cache-line-padded shards make it disappear.">
+
+
+  
+<link rel="stylesheet" href='https://sloppyquorum.com/css/single.css'>
+<link rel="stylesheet" href='https://sloppyquorum.com/css/sharingbuttons.css'>
+
+</head>
+
+<body>
+  <div id="wrapper">
+    
+
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JN1QZFPPLN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-JN1QZFPPLN');
+</script>
+<header id="header">
+  <h1>
+    <a href="https://sloppyquorum.com/">Sloppy Quorum</a>
+  </h1>
+
+  <nav>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/">Posts</a>
+    </span>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/post/index.html">Archive</a>
+    </span>
+    
+    <span class="nav-bar-item">
+      <a class="link" href="/about/index.html">About</a>
+    </span>
+    
+  </nav>
+  
+</header>
+
+    
+<main id="main" class="post">
+  
+  <h1>Killing Cache-Line Contention with Sharded Counters</h1>
+  
+  <div>
+    
+    <a class="link" href='https://sloppyquorum.com/tags/rust'>#rust</a>
+    
+    <a class="link" href='https://sloppyquorum.com/tags/concurrency'>#concurrency</a>
+    
+    <a class="link" href='https://sloppyquorum.com/tags/performance'>#performance</a>
+    
+    <a class="link" href='https://sloppyquorum.com/tags/atomics'>#atomics</a>
+    
+  </div>
+  
+  
+  
+  <details>
+    <summary>
+      <b>Table of Contents</b>
+    </summary>
+    <div class="toc numbered-subtitles"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-baseline">The baseline</a></li>
+    <li><a href="#the-shard">The shard</a></li>
+    <li><a href="#the-write-path">The write path</a>
+      <ul>
+        <li><a href="#thread-id-indexer-portable">Thread-id indexer (portable)</a></li>
+        <li><a href="#cpu-id-indexer-linux-only-numa-aware">CPU-id indexer (Linux only, NUMA-aware)</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-read-path">The read path</a></li>
+    <li><a href="#picking-shards">Picking <code>SHARDS</code></a></li>
+    <li><a href="#measured">Measured</a></li>
+    <li><a href="#what-this-pattern-is-and-isnt">What this pattern is and isn&rsquo;t</a></li>
+  </ul>
+</nav></div>
+  </details>
+  
+  
+  <article class="content numbered-subtitles">
+    
+    <p>Telemetry counters look harmless. You wrap an <code>AtomicU64</code>, sprinkle <code>fetch_add(1, Relaxed)</code> through the hot path, and call it a day. Under low concurrency it costs nothing. Under high concurrency, that single counter becomes one of the most expensive lines of code in the program.</p>
+<p>The reason is hardware. Every <code>fetch_add</code> on the same atomic must acquire that cache line in the modified state on the issuing core, which means evicting it from whichever core had it last. With N cores writing the same counter, you&rsquo;re serializing the cache line through the coherence protocol. The atomic itself is lock-free; the cache line is not.</p>
+<h2 id="the-baseline">The baseline</h2>
+<p>Here&rsquo;s the naive version most code ships with.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">use</span><span style="color:#f8f8f8"> </span><span style="color:#000">std</span>::<span style="color:#000">sync</span>::<span style="color:#000">atomic</span>::<span style="color:#000;font-weight:bold">{</span><span style="color:#000">AtomicU64</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">Ordering</span><span style="color:#000;font-weight:bold">};</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000">Counter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">AtomicU64</span><span style="color:#000;font-weight:bold">);</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">impl</span><span style="color:#f8f8f8"> </span><span style="color:#000">Counter</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">const</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">fn</span> <span style="color:#000">new</span><span style="color:#000;font-weight:bold">()</span><span style="color:#f8f8f8"> </span>-&gt; <span style="color:#000">Self</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">        </span><span style="color:#3465a4">Self</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">AtomicU64</span>::<span style="color:#000">new</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">))</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#8f5902;font-style:italic">#[inline]</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">fn</span> <span style="color:#000">add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">value</span>: <span style="color:#204a87;font-weight:bold">u64</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">        </span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">.</span><span style="color:#0000cf;font-weight:bold">0.</span><span style="color:#000">fetch_add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">Ordering</span>::<span style="color:#000">Relaxed</span><span style="color:#000;font-weight:bold">);</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">fn</span> <span style="color:#000">value</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8"> </span>-&gt; <span style="color:#204a87;font-weight:bold">u64</span> <span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">        </span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">.</span><span style="color:#0000cf;font-weight:bold">0.</span><span style="color:#000">load</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">Ordering</span>::<span style="color:#000">Relaxed</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span></code></pre></div><p>Eight lines and correct. The read is trivially atomic (a single 8-byte load). The write is <code>lock xadd</code> on x86, an LL/SC loop on ARM. The cost on a single thread is a handful of cycles.</p>
+<p>Now put it on the hot path of eight worker threads each doing a million increments. The single cache line holding <code>self.0</code> has to migrate to whichever core is currently executing <code>fetch_add</code>. Every other core that wants to write has to wait for cache coherence to invalidate its copy, transfer the line, and let it acquire exclusive ownership. The atomic operation itself is still lock-free in the textbook sense, but the cache line acts as a lock, and the protocol that moves it is the contention.</p>
+<p>You can watch this happen in <code>perf stat</code>. <code>cache-misses</code> climbs, IPC drops, and adding more threads makes the counter <em>slower</em>, not faster. This is the false-sharing-of-one problem.</p>
+<p>The fix is to stop sharing the line. Spread writes across many independent atomics, each on its own cache line, and sum them when somebody actually reads.</p>
+<h2 id="the-shard">The shard</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#[repr(align(128))]</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000">Shard</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">AtomicU64</span><span style="color:#000;font-weight:bold">);</span><span style="color:#f8f8f8">
+</span></span></span></code></pre></div><p>That&rsquo;s the entire data structure. The <code>align(128)</code> is the only thing that matters. It guarantees adjacent shards live on different cache lines. Why 128 and not 64? Apple Silicon uses 128-byte lines. Intel&rsquo;s lines are 64 bytes, but the adjacent-line prefetcher will pull in the neighbor on access, effectively coupling pairs of lines. Padding to 128 bytes covers both. You overpay by one line per shard. At 64 shards that&rsquo;s 8 KiB total. Cheap.</p>
+<h2 id="the-write-path">The write path</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">fn</span> <span style="color:#000">add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">value</span>: <span style="color:#204a87;font-weight:bold">u64</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">let</span><span style="color:#f8f8f8"> </span><span style="color:#000">idx</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">indexer</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">()</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">%</span><span style="color:#f8f8f8"> </span><span style="color:#000">SHARDS</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">shards</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">idx</span><span style="color:#000;font-weight:bold">].</span><span style="color:#0000cf;font-weight:bold">0.</span><span style="color:#000">fetch_add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">Ordering</span>::<span style="color:#000">Relaxed</span><span style="color:#000;font-weight:bold">);</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span></code></pre></div><p>Two things to notice. First, <code>Relaxed</code> ordering. The counter doesn&rsquo;t synchronize anything beyond itself. A torn read between two shards is fine because the reader isn&rsquo;t taking a snapshot anyway (more on that in a moment). Pay only for the atomicity you actually need.</p>
+<p>Second, the indexer is a trait. The shard for a given write is chosen by an <code>Indexer</code> implementation, which is on the write fast path and must be inlinable and lock-free.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">trait</span><span style="color:#f8f8f8"> </span><span style="color:#000">Indexer</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">fn</span> <span style="color:#000">index</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8"> </span>-&gt; <span style="color:#204a87;font-weight:bold">usize</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span></code></pre></div><p>Two implementations are useful in practice.</p>
+<h3 id="thread-id-indexer-portable">Thread-id indexer (portable)</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">use</span><span style="color:#f8f8f8"> </span><span style="color:#000">std</span>::<span style="color:#000">cell</span>::<span style="color:#000">Cell</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">use</span><span style="color:#f8f8f8"> </span><span style="color:#000">std</span>::<span style="color:#000">sync</span>::<span style="color:#000">atomic</span>::<span style="color:#000;font-weight:bold">{</span><span style="color:#000">AtomicUsize</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">Ordering</span><span style="color:#000;font-weight:bold">};</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000">ThreadIdIndexer</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">static</span><span style="color:#f8f8f8"> </span><span style="color:#000">NEXT_THREAD_SHARD_ID</span>: <span style="color:#000">AtomicUsize</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#000">AtomicUsize</span>::<span style="color:#000">new</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">);</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#000">thread_local!</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">static</span><span style="color:#f8f8f8"> </span><span style="color:#000">THREAD_SHARD_ID</span>: <span style="color:#000">Cell</span><span style="color:#ce5c00;font-weight:bold">&lt;</span><span style="color:#204a87;font-weight:bold">usize</span><span style="color:#ce5c00;font-weight:bold">&gt;</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">const</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8"> </span><span style="color:#000">Cell</span>::<span style="color:#000">new</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">usize</span>::<span style="color:#000">MAX</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">};</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">impl</span><span style="color:#f8f8f8"> </span><span style="color:#000">Indexer</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">for</span><span style="color:#f8f8f8"> </span><span style="color:#000">ThreadIdIndexer</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">fn</span> <span style="color:#000">index</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8"> </span>-&gt; <span style="color:#204a87;font-weight:bold">usize</span> <span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">        </span><span style="color:#000">THREAD_SHARD_ID</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">with</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">|</span><span style="color:#000">c</span><span style="color:#ce5c00;font-weight:bold">|</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">            </span><span style="color:#204a87;font-weight:bold">let</span><span style="color:#f8f8f8"> </span><span style="color:#000">v</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">get</span><span style="color:#000;font-weight:bold">();</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">            </span><span style="color:#204a87;font-weight:bold">if</span><span style="color:#f8f8f8"> </span><span style="color:#000">v</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">!=</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">usize</span>::<span style="color:#000">MAX</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">                </span><span style="color:#204a87;font-weight:bold">return</span><span style="color:#f8f8f8"> </span><span style="color:#000">v</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">            </span><span style="color:#8f5902;font-style:italic">// fast path: one TLS load
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">            </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">            </span><span style="color:#204a87;font-weight:bold">let</span><span style="color:#f8f8f8"> </span><span style="color:#000">new_v</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#000">NEXT_THREAD_SHARD_ID</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">fetch_add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">Ordering</span>::<span style="color:#000">Relaxed</span><span style="color:#000;font-weight:bold">);</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">            </span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">new_v</span><span style="color:#000;font-weight:bold">);</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">            </span><span style="color:#000">new_v</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">        </span><span style="color:#000;font-weight:bold">})</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span></code></pre></div><p>Each thread gets a sequential id on first use, cached in a thread-local. The fast path is one TLS load. The slow path, taken exactly once per thread, is one atomic increment of a process-wide counter.</p>
+<p>Sequential ids beat hashing the <code>ThreadId</code>. The first <code>SHARDS</code> threads get perfect distribution, and collisions only start after wraparound. A hash-based scheme can collide on the very first two threads if it&rsquo;s unlucky. The all-ones bit pattern is the unassigned sentinel, which works because no real id ever reaches it.</p>
+<p>This implementation is portable. macOS, Linux, Windows, BSDs all give you thread-locals and atomics.</p>
+<h3 id="cpu-id-indexer-linux-only-numa-aware">CPU-id indexer (Linux only, NUMA-aware)</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#[cfg(target_os = </span><span style="color:#4e9a06">&#34;linux&#34;</span><span style="color:#8f5902;font-style:italic">)]</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000">CpuIndexer</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#[cfg(target_os = </span><span style="color:#4e9a06">&#34;linux&#34;</span><span style="color:#8f5902;font-style:italic">)]</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">impl</span><span style="color:#f8f8f8"> </span><span style="color:#000">Indexer</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">for</span><span style="color:#f8f8f8"> </span><span style="color:#000">CpuIndexer</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">fn</span> <span style="color:#000">index</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8"> </span>-&gt; <span style="color:#204a87;font-weight:bold">usize</span> <span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">        </span><span style="color:#204a87;font-weight:bold">let</span><span style="color:#f8f8f8"> </span><span style="color:#000">cpu</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">unsafe</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8"> </span><span style="color:#000">libc</span>::<span style="color:#000">sched_getcpu</span><span style="color:#000;font-weight:bold">()</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">};</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">        </span><span style="color:#204a87;font-weight:bold">if</span><span style="color:#f8f8f8"> </span><span style="color:#000">cpu</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">&lt;</span><span style="color:#f8f8f8"> </span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8"> </span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">else</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8"> </span><span style="color:#000">cpu</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">as</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">usize</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span></code></pre></div><p>The whole implementation is one syscall-like call. <code>sched_getcpu</code> returns the CPU the calling thread is currently scheduled on; on modern glibc it&rsquo;s a vDSO call, so it never enters the kernel. It&rsquo;s a few cycles.</p>
+<p>The point isn&rsquo;t really to dodge collisions. It&rsquo;s locality. When the kernel migrates a thread to a new core, writes immediately start landing in the shard whose cache line is already hot in that core&rsquo;s L1. With a thread-id indexer the migrated thread keeps writing to its old shard, whose cache line is now stale on the new core and has to be pulled across the interconnect on the very next <code>fetch_add</code>. On NUMA boxes or many-core systems, that one extra transfer per migration is exactly the cost the sharding was supposed to eliminate.</p>
+<p>The error handling is deliberately weak. On <code>sched_getcpu</code> failure (rare; <code>EFAULT</code> only, per the man page) it falls back to shard 0 silently. Telemetry is best-effort, not load-bearing; an unhandled error here would be worse than a silent miscount.</p>
+<p>Pick <code>CpuIndexer</code> on Linux when you can. Fall back to <code>ThreadIdIndexer</code> everywhere else. A small <code>cfg</code> alias lets the rest of the code stay platform-agnostic.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#[cfg(target_os = </span><span style="color:#4e9a06">&#34;linux&#34;</span><span style="color:#8f5902;font-style:italic">)]</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">PerfCounter</span><span style="color:#ce5c00;font-weight:bold">&lt;</span><span style="color:#204a87;font-weight:bold">const</span><span style="color:#f8f8f8"> </span><span style="color:#000">N</span>: <span style="color:#204a87;font-weight:bold">usize</span><span style="color:#ce5c00;font-weight:bold">&gt;</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#000">ShardedCounter</span><span style="color:#ce5c00;font-weight:bold">&lt;</span><span style="color:#000">N</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">CpuIndexer</span><span style="color:#ce5c00;font-weight:bold">&gt;</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#[cfg(not(target_os = </span><span style="color:#4e9a06">&#34;linux&#34;</span><span style="color:#8f5902;font-style:italic">))]</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">PerfCounter</span><span style="color:#ce5c00;font-weight:bold">&lt;</span><span style="color:#204a87;font-weight:bold">const</span><span style="color:#f8f8f8"> </span><span style="color:#000">N</span>: <span style="color:#204a87;font-weight:bold">usize</span><span style="color:#ce5c00;font-weight:bold">&gt;</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#000">ShardedCounter</span><span style="color:#ce5c00;font-weight:bold">&lt;</span><span style="color:#000">N</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8"> </span><span style="color:#000">ThreadIdIndexer</span><span style="color:#ce5c00;font-weight:bold">&gt;</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">
+</span></span></span></code></pre></div><h2 id="the-read-path">The read path</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">pub</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">fn</span> <span style="color:#000">value</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">)</span><span style="color:#f8f8f8"> </span>-&gt; <span style="color:#204a87;font-weight:bold">u64</span> <span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">let</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">mut</span><span style="color:#f8f8f8"> </span><span style="color:#000">total</span>: <span style="color:#204a87;font-weight:bold">u64</span> <span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">;</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#204a87;font-weight:bold">for</span><span style="color:#f8f8f8"> </span><span style="color:#000">s</span><span style="color:#f8f8f8"> </span><span style="color:#204a87;font-weight:bold">in</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#3465a4">self</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">shards</span><span style="color:#f8f8f8"> </span><span style="color:#000;font-weight:bold">{</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">        </span><span style="color:#000">total</span><span style="color:#f8f8f8"> </span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#f8f8f8"> </span><span style="color:#000">total</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">wrapping_add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#0000cf;font-weight:bold">0.</span><span style="color:#000">load</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">Ordering</span>::<span style="color:#000">Relaxed</span><span style="color:#000;font-weight:bold">));</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8">    </span><span style="color:#000">total</span><span style="color:#f8f8f8">
+</span></span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span><span style="color:#f8f8f8">
+</span></span></span></code></pre></div><p>O(SHARDS), and explicitly <strong>not a snapshot</strong>. Shards are loaded one at a time with <code>Relaxed</code> ordering, so concurrent writers can land in a shard that&rsquo;s already been read, or in one that hasn&rsquo;t been read yet. The return value lies somewhere between the counter&rsquo;s value at the start of the call and its value at the end.</p>
+<p>For telemetry this is fine. You&rsquo;re going to graph the number, not branch on it. The contract is explicit. It&rsquo;s fine for telemetry but not for anything you want to branch on. If you violate that contract you have nobody to blame.</p>
+<p><code>reset()</code> has the same caveat. A concurrent writer can land in a shard that&rsquo;s already been zeroed, leaving the counter non-zero immediately after <code>reset</code> returns. Quiesce writers first or accept the drift.</p>
+<h2 id="picking-shards">Picking <code>SHARDS</code></h2>
+<p>A reasonable rule of thumb is the smallest power of two that&rsquo;s <code>&gt;=</code> the number of concurrent writers you expect. Power of two so the <code>% SHARDS</code> lowers to a bitmask. Larger reduces contention; smaller keeps reads fast and the working set small. Each shard costs 128 bytes, so 64 shards is 8 KiB and 256 shards is 32 KiB. The sweet spot for a server-class workload is usually 32 to 64.</p>
+<h2 id="measured">Measured</h2>
+<p>Theory is one thing; numbers are another. I ran a small benchmark that
+contends N worker threads against (a) a single <code>AtomicU64</code> and (b) a
+64-shard <code>ShardedCounter</code> with a thread-id indexer, each thread doing
+5 million <code>fetch_add(1, Relaxed)</code> operations.</p>
+<p>Run on an AMD Ryzen Threadripper 3970X (32 physical cores, 64
+threads with SMT), 192 GiB DDR4, Ubuntu 25.10, Linux 6.17, rustc
+1.93.1, release build with <code>lto = true</code> and <code>codegen-units = 1</code>. Best
+of three runs reported.</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: right">Threads</th>
+          <th style="text-align: right">Naive (Mops/s)</th>
+          <th style="text-align: right">Sharded (Mops/s)</th>
+          <th style="text-align: right">Speedup</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: right">1</td>
+          <td style="text-align: right">105.94</td>
+          <td style="text-align: right">108.56</td>
+          <td style="text-align: right">1.0x</td>
+      </tr>
+      <tr>
+          <td style="text-align: right">2</td>
+          <td style="text-align: right">53.44</td>
+          <td style="text-align: right">216.79</td>
+          <td style="text-align: right">4.1x</td>
+      </tr>
+      <tr>
+          <td style="text-align: right">4</td>
+          <td style="text-align: right">47.78</td>
+          <td style="text-align: right">433.25</td>
+          <td style="text-align: right">9.1x</td>
+      </tr>
+      <tr>
+          <td style="text-align: right">8</td>
+          <td style="text-align: right">46.82</td>
+          <td style="text-align: right">861.90</td>
+          <td style="text-align: right">18.4x</td>
+      </tr>
+      <tr>
+          <td style="text-align: right">16</td>
+          <td style="text-align: right">46.63</td>
+          <td style="text-align: right">1714.33</td>
+          <td style="text-align: right">36.8x</td>
+      </tr>
+      <tr>
+          <td style="text-align: right">32</td>
+          <td style="text-align: right">47.48</td>
+          <td style="text-align: right">3336.20</td>
+          <td style="text-align: right">70.3x</td>
+      </tr>
+      <tr>
+          <td style="text-align: right">64</td>
+          <td style="text-align: right">54.89</td>
+          <td style="text-align: right">6136.46</td>
+          <td style="text-align: right">111.8x</td>
+      </tr>
+  </tbody>
+</table>
+<p>Three things jump out.</p>
+<p><strong>Adding a second thread halves the naive counter&rsquo;s throughput.</strong> It
+goes from 106 Mops/s to 53 Mops/s. That isn&rsquo;t &ldquo;scaling poorly&rdquo;; it&rsquo;s
+the cache line transitioning from a single owner doing uncontended
+<code>xadd</code> to a coherence ping-pong between two cores. Every increment
+now waits for the line to migrate.</p>
+<p><strong>Past two threads, naive throughput is flat.</strong> 47 Mops/s at 4 cores,
+at 16 cores, at 32 cores. The bottleneck is the cache coherence
+protocol, and adding cores doesn&rsquo;t help; it just adds more contenders
+for the same line. The 64-thread row creeps up to 55 Mops/s because
+SMT siblings share L1 and the line doesn&rsquo;t have to leave the core for
+intra-core contention.</p>
+<p><strong>Sharded scales nearly linearly.</strong> Doubling the threads roughly
+doubles the throughput, all the way to 6.1 Gops/s at 64 threads. At
+32 physical cores the sharded counter is <strong>70x faster</strong> than the
+naive one. At 64 threads (with SMT) it&rsquo;s almost 112x. That ratio is
+not subtle.</p>
+<p>Single-threaded performance is essentially identical between the two
+(106 vs 109 Mops/s). The thread-local indexer adds one TLS load per
+increment, which on this CPU is roughly free. So there&rsquo;s no
+fast-path tax to pay for the slow-path win.</p>
+<p><strong>The speedup column exceeds the thread count, but the math is honest.</strong>
+Sharded scales at most linearly with cores. The 32-thread row is
+31.5x the single-thread baseline (3336 / 106), exactly the ceiling
+you&rsquo;d expect from 32 cores. The reason the reported speedup is 70x
+and not 32x is that naive doesn&rsquo;t just fail to scale; it <em>regresses</em>.
+A single thread does 106 Mops/s; 32 threads competing on the same
+line manage 47 Mops/s, a 2.25x slowdown from the uncontended
+baseline. The speedup column is <code>sharded(N) / naive(N)</code>, so it
+multiplies the two effects. 31.5x scaling on the numerator times
+2.25x degradation on the denominator gives 70x. The cleaner framing
+isn&rsquo;t &ldquo;sharded is 70x faster&rdquo;; it&rsquo;s &ldquo;sharded scales linearly and
+naive moves backwards, so the gap compounds.&rdquo;</p>
+<h2 id="what-this-pattern-is-and-isnt">What this pattern is and isn&rsquo;t</h2>
+<p>This pattern is a way to amortize the cost of an atomic write across many cache lines so writers never wait on each other.</p>
+<p>What it isn&rsquo;t is a snapshot counter, a histogram, a precise meter for billing or rate limiting, or anything you want to compare against a threshold. The relaxed semantics give you throughput, not correctness, and the read aggregation gives you an estimate, not a value.</p>
+<p>The right rule of thumb is simple. If losing or double-counting a few increments under contention would cause a bug, don&rsquo;t use this. If you&rsquo;re going to feed the number into a dashboard, this is the cheapest correct thing you can do.</p>
+
+    
+  </article>
+  
+
+<div id="sharingbuttons">
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://twitter.com/intent/tweet/?text=Killing%20Cache-Line%20Contention%20with%20Sharded%20Counters&amp;url=https%3a%2f%2fsloppyquorum.com%2fpost%2fsharded_perf_counter%2f"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--twitter resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path
+              d="M23.44 4.83c-.8.37-1.5.38-2.22.02.93-.56.98-.96 1.32-2.02-.88.52-1.86.9-2.9 1.1-.82-.88-2-1.43-3.3-1.43-2.5 0-4.55 2.04-4.55 4.54 0 .36.03.7.1 1.04-3.77-.2-7.12-2-9.36-4.75-.4.67-.6 1.45-.6 2.3 0 1.56.8 2.95 2 3.77-.74-.03-1.44-.23-2.05-.57v.06c0 2.2 1.56 4.03 3.64 4.44-.67.2-1.37.2-2.06.08.58 1.8 2.26 3.12 4.25 3.16C5.78 18.1 3.37 18.74 1 18.46c2 1.3 4.4 2.04 6.97 2.04 8.35 0 12.92-6.92 12.92-12.93 0-.2 0-.4-.02-.6.9-.63 1.96-1.22 2.56-2.14z"/>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://www.linkedin.com/sharing/share-offsite/?url=https%3a%2f%2fsloppyquorum.com%2fpost%2fsharded_perf_counter%2f"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--linkedin resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path
+              d="M6.5 21.5h-5v-13h5v13zM4 6.5C2.5 6.5 1.5 5.3 1.5 4s1-2.4 2.5-2.4c1.6 0 2.5 1 2.6 2.5 0 1.4-1 2.5-2.6 2.5zm11.5 6c-1 0-2 1-2 2v7h-5v-13h5V10s1.6-1.5 4-1.5c3 0 5 2.2 5 6.3v6.7h-5v-7c0-1-1-2-2-2z"/>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+
+  
+  
+  <a class="resp-sharing-button__link"
+     href="https://news.ycombinator.com/submitlink?u=https%3a%2f%2fsloppyquorum.com%2fpost%2fsharded_perf_counter%2f&amp;t=Killing%20Cache-Line%20Contention%20with%20Sharded%20Counters"
+     target="_blank" rel="noopener" aria-label="">
+    <div
+        class="resp-sharing-button resp-sharing-button--hackernews resp-sharing-button--small">
+      <div aria-hidden="true"
+           class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140">
+          <path fill-rule="evenodd"
+                d="M60.94 82.314L17 0h20.08l25.85 52.093c.397.927.86 1.888 1.39 2.883.53.994.995 2.02 1.393 3.08.265.4.463.764.596 1.095.13.334.262.63.395.898.662 1.325 1.26 2.618 1.79 3.877.53 1.26.993 2.42 1.39 3.48 1.06-2.254 2.22-4.673 3.48-7.258 1.26-2.585 2.552-5.27 3.877-8.052L103.49 0h18.69L77.84 83.308v53.087h-16.9v-54.08z"></path>
+        </svg>
+      </div>
+    </div>
+  </a>
+  
+</div>
+
+  <div class="paginator">
+    
+    <a class="link" href="https://sloppyquorum.com/post/cpp_ranges_itr/">← prev</a>
+    
+    
+    <a></a>
+    
+  </div>
+  <div class="comment">
+    
+    
+    
+    
+  </div>
+  
+
+</main>
+
+    <footer id="footer">
+  <div>
+    <span>© 2024</span> - <span>2026</span>
+  </div>
+
+  <div class="footnote">
+    <span>Follow me on <a class=link href=https://github.com/RahulKushwaha/ target=_blank rel=noopener>GitHub</a>,
+<a class=link href=https://twitter.com/sloppyquorum target=_blank rel=noopener>X</a> |
+<a class=link href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en target=_blank rel=noopener>CC BY-NC-SA 4.0</a>
+</span>
+  </div>
+</footer>
+
+  </div>
+
+  
+  
+  <link media="screen" rel="stylesheet" href="https://sloppyquorum.com/css/custom.css" />
+  
+
+  
+  
+
+  
+  
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-0GZRVRLSQV"></script>
+      <script>
+        var doNotTrack = false;
+        if ( true ) {
+          var dnt = (navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack);
+          var doNotTrack = (dnt == "1" || dnt == "yes");
+        }
+        if (!doNotTrack) {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-0GZRVRLSQV');
+        }
+      </script>
+
+</body>
+
+</html>

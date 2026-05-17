@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Concurrency on sloppy quorum</title>
+    <link>https://sloppyquorum.com/tags/concurrency/</link>
+    <description>Recent content in Concurrency on sloppy quorum</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <managingEditor>rahul.kushwaha@gmail.com (Rahul Kushwaha)</managingEditor>
+    <webMaster>rahul.kushwaha@gmail.com (Rahul Kushwaha)</webMaster>
+    <lastBuildDate>Sun, 17 May 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://sloppyquorum.com/tags/concurrency/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Killing Cache-Line Contention with Sharded Counters</title>
+      <link>https://sloppyquorum.com/post/sharded_perf_counter/</link>
+      <pubDate>Sun, 17 May 2026 00:00:00 +0000</pubDate>
+      <author>rahul.kushwaha@gmail.com (Rahul Kushwaha)</author>
+      <guid>https://sloppyquorum.com/post/sharded_perf_counter/</guid>
+      <description>A single hot AtomicU64 forces every writer to bounce the same cache line between cores. Sharding the counter across cache-line-padded atomics turns a contended fetch_add into uncontended local writes, at the cost of an O(SHARDS) read.</description>
+    </item>
+    
+  </channel>
+</rss>
