@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#111827"/>
+  <rect x="12" y="12" width="40" height="40" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="3"/>
+  <g stroke="#38bdf8" stroke-width="2" stroke-linecap="round">
+    <path d="M7 18h8M7 28h8M7 38h8M49 18h8M49 28h8M49 38h8M18 7v8M28 7v8M38 7v8M18 49v8M28 49v8M38 49v8"/>
+  </g>
+  <text x="32" y="39" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-weight="800" font-size="20" fill="#f8fafc">SQ</text>
+</svg>

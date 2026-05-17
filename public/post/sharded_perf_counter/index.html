@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" style="font-size: 90%">
 
-<head>
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -14,9 +14,11 @@
   
 
   
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#0D1117">
 
   
   
@@ -37,7 +39,7 @@
   
 
   
-  <meta property="og:url" content="https://sloppyquorum.com/post/sharded_perf_counter/">
+  <meta property="og:url" content="http://localhost:1313/post/sharded_perf_counter/">
   <meta property="og:site_name" content="sloppy quorum">
   <meta property="og:title" content="Killing Cache-Line Contention with Sharded Counters">
   <meta property="og:description" content="How a single atomic counter becomes a bottleneck under concurrent writes, and how cache-line-padded shards make it disappear.">
@@ -50,11 +52,11 @@
     <meta property="article:tag" content="Concurrency">
     <meta property="article:tag" content="Performance">
     <meta property="article:tag" content="Atomics">
-    <meta property="og:image" content="https://sloppyquorum.com/images/logo.jpg">
+    <meta property="og:image" content="http://localhost:1313/images/logo.jpg">
 
 
   
-  <link rel="canonical" href="https://sloppyquorum.com/post/sharded_perf_counter/">
+  <link rel="canonical" href="http://localhost:1313/post/sharded_perf_counter/">
 
   
   
@@ -64,12 +66,12 @@
   <meta itemprop="datePublished" content="2026-05-17T00:00:00+00:00">
   <meta itemprop="dateModified" content="2026-05-17T00:00:00+00:00">
   <meta itemprop="wordCount" content="1731">
-  <meta itemprop="image" content="https://sloppyquorum.com/images/logo.jpg">
+  <meta itemprop="image" content="http://localhost:1313/images/logo.jpg">
   <meta itemprop="keywords" content="Rust,Concurrency,Performance,Atomics">
 
   
-  <link media="screen" rel="stylesheet" href='https://sloppyquorum.com/css/common.css'>
-  <link media="screen" rel="stylesheet" href='https://sloppyquorum.com/css/content.css'>
+  <link media="screen" rel="stylesheet" href='http://localhost:1313/css/common.css'>
+  <link media="screen" rel="stylesheet" href='http://localhost:1313/css/content.css'>
 
   
   
@@ -79,14 +81,14 @@
   
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://sloppyquorum.com/images/logo.jpg">
+  <meta name="twitter:image" content="http://localhost:1313/images/logo.jpg">
   <meta name="twitter:title" content="Killing Cache-Line Contention with Sharded Counters">
   <meta name="twitter:description" content="How a single atomic counter becomes a bottleneck under concurrent writes, and how cache-line-padded shards make it disappear.">
 
 
   
-<link rel="stylesheet" href='https://sloppyquorum.com/css/single.css'>
-<link rel="stylesheet" href='https://sloppyquorum.com/css/sharingbuttons.css'>
+<link rel="stylesheet" href='http://localhost:1313/css/single.css'>
+<link rel="stylesheet" href='http://localhost:1313/css/sharingbuttons.css'>
 
 </head>
 
@@ -106,7 +108,7 @@
 </script>
 <header id="header">
   <h1>
-    <a href="https://sloppyquorum.com/">Sloppy Quorum</a>
+    <a href="http://localhost:1313/">Sloppy Quorum</a>
   </h1>
 
   <nav>
@@ -134,13 +136,13 @@
   
   <div>
     
-    <a class="link" href='https://sloppyquorum.com/tags/rust'>#rust</a>
+    <a class="link" href='http://localhost:1313/tags/rust'>#rust</a>
     
-    <a class="link" href='https://sloppyquorum.com/tags/concurrency'>#concurrency</a>
+    <a class="link" href='http://localhost:1313/tags/concurrency'>#concurrency</a>
     
-    <a class="link" href='https://sloppyquorum.com/tags/performance'>#performance</a>
+    <a class="link" href='http://localhost:1313/tags/performance'>#performance</a>
     
-    <a class="link" href='https://sloppyquorum.com/tags/atomics'>#atomics</a>
+    <a class="link" href='http://localhost:1313/tags/atomics'>#atomics</a>
     
   </div>
   
@@ -382,7 +384,7 @@ naive moves backwards, so the gap compounds.&rdquo;</p>
   
   
   <a class="resp-sharing-button__link"
-     href="https://twitter.com/intent/tweet/?text=Killing%20Cache-Line%20Contention%20with%20Sharded%20Counters&amp;url=https%3a%2f%2fsloppyquorum.com%2fpost%2fsharded_perf_counter%2f"
+     href="https://twitter.com/intent/tweet/?text=Killing%20Cache-Line%20Contention%20with%20Sharded%20Counters&amp;url=http%3a%2f%2flocalhost%3a1313%2fpost%2fsharded_perf_counter%2f"
      target="_blank" rel="noopener" aria-label="">
     <div
         class="resp-sharing-button resp-sharing-button--twitter resp-sharing-button--small">
@@ -400,7 +402,7 @@ naive moves backwards, so the gap compounds.&rdquo;</p>
   
   
   <a class="resp-sharing-button__link"
-     href="https://www.linkedin.com/sharing/share-offsite/?url=https%3a%2f%2fsloppyquorum.com%2fpost%2fsharded_perf_counter%2f"
+     href="https://www.linkedin.com/sharing/share-offsite/?url=http%3a%2f%2flocalhost%3a1313%2fpost%2fsharded_perf_counter%2f"
      target="_blank" rel="noopener" aria-label="">
     <div
         class="resp-sharing-button resp-sharing-button--linkedin resp-sharing-button--small">
@@ -418,7 +420,7 @@ naive moves backwards, so the gap compounds.&rdquo;</p>
   
   
   <a class="resp-sharing-button__link"
-     href="https://news.ycombinator.com/submitlink?u=https%3a%2f%2fsloppyquorum.com%2fpost%2fsharded_perf_counter%2f&amp;t=Killing%20Cache-Line%20Contention%20with%20Sharded%20Counters"
+     href="https://news.ycombinator.com/submitlink?u=http%3a%2f%2flocalhost%3a1313%2fpost%2fsharded_perf_counter%2f&amp;t=Killing%20Cache-Line%20Contention%20with%20Sharded%20Counters"
      target="_blank" rel="noopener" aria-label="">
     <div
         class="resp-sharing-button resp-sharing-button--hackernews resp-sharing-button--small">
@@ -436,7 +438,7 @@ naive moves backwards, so the gap compounds.&rdquo;</p>
 
   <div class="paginator">
     
-    <a class="link" href="https://sloppyquorum.com/post/cpp_ranges_itr/">← prev</a>
+    <a class="link" href="http://localhost:1313/post/cpp_ranges_itr/">← prev</a>
     
     
     <a></a>
@@ -469,7 +471,7 @@ naive moves backwards, so the gap compounds.&rdquo;</p>
 
   
   
-  <link media="screen" rel="stylesheet" href="https://sloppyquorum.com/css/custom.css" />
+  <link media="screen" rel="stylesheet" href="http://localhost:1313/css/custom.css" />
   
 
   
