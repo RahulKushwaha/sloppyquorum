@@ -63,6 +63,11 @@ struct PushArgs {
     #[arg(long, value_delimiter = ',', env = "DEPLOY_DISTRIBUTIONS")]
     distributions: Vec<String>,
 
+    /// Look up CloudFront distributions by tag, e.g. `usage=sloppy_quorum_static`.
+    /// Combined with any IDs from --distributions.
+    #[arg(long, env = "DEPLOY_DISTRIBUTIONS_TAG", value_parser = parse_tag)]
+    distributions_tag: Option<(String, String)>,
+
     /// Bitwarden item name (or id) holding the AWS credentials.
     /// Expected schema: Login item where `username` is the
     /// access key id, `password` is the secret access key, and
@@ -104,8 +109,8 @@ async fn main() -> Result<()> {
             run_lychee(&repo, &public, &cli.base_url)?;
         }
         Cmd::Push(args) => {
-            if args.distributions.is_empty() {
-                bail!("--distributions must list at least one CloudFront ID");
+            if args.distributions.is_empty() && args.distributions_tag.is_none() {
+                bail!("provide --distributions IDs and/or --distributions-tag KEY=VALUE");
             }
             run_hugo(&repo)?;
             grep_dev_url_leaks(&public)?;
@@ -194,6 +199,28 @@ async fn push(public: &Path, args: &PushArgs) -> Result<()> {
         })
         .collect();
 
+    let aws_cfg = match args.bitwarden_item.as_deref() {
+        Some(item) => {
+            let creds = fetch_bw_credentials(item)?;
+            aws_config::from_env().credentials_provider(creds).load().await
+        }
+        None => aws_config::from_env().load().await,
+    };
+
+    let mut distribution_ids: Vec<String> = args.distributions.clone();
+    if let Some((key, value)) = &args.distributions_tag {
+        let extra = resolve_distributions_by_tag(&aws_cfg, key, value).await?;
+        if extra.is_empty() {
+            bail!("no CloudFront distributions found with tag {key}={value}");
+        }
+        distribution_ids.extend(extra);
+    }
+    distribution_ids.sort();
+    distribution_ids.dedup();
+    if distribution_ids.is_empty() {
+        bail!("no CloudFront distributions resolved");
+    }
+
     println!(
         "{} {} files -> s3://{}/",
         if args.dry_run { "DRY-RUN upload" } else { "Uploading" },
@@ -205,19 +232,12 @@ async fn push(public: &Path, args: &PushArgs) -> Result<()> {
         for (k, _) in &local {
             println!("  + {k}");
         }
-        for d in &args.distributions {
+        for d in &distribution_ids {
             println!("  invalidate {d} /*");
         }
         return Ok(());
     }
 
-    let aws_cfg = match args.bitwarden_item.as_deref() {
-        Some(item) => {
-            let creds = fetch_bw_credentials(item)?;
-            aws_config::from_env().credentials_provider(creds).load().await
-        }
-        None => aws_config::from_env().load().await,
-    };
     let s3 = aws_sdk_s3::Client::new(&aws_cfg);
     let cf = aws_sdk_cloudfront::Client::new(&aws_cfg);
 
@@ -225,8 +245,55 @@ async fn push(public: &Path, args: &PushArgs) -> Result<()> {
     if !args.no_prune {
         prune(&s3, &args.bucket, &local).await?;
     }
-    invalidate(&cf, &args.distributions).await?;
+    invalidate(&cf, &distribution_ids).await?;
     Ok(())
+}
+
+async fn resolve_distributions_by_tag(
+    cfg: &aws_config::SdkConfig,
+    key: &str,
+    value: &str,
+) -> Result<Vec<String>> {
+    use aws_sdk_resourcegroupstagging::types::TagFilter;
+    let client = aws_sdk_resourcegroupstagging::Client::new(cfg);
+    let mut ids = Vec::new();
+    let mut token: Option<String> = None;
+    loop {
+        let mut req = client
+            .get_resources()
+            .resource_type_filters("cloudfront:distribution")
+            .tag_filters(TagFilter::builder().key(key).values(value).build());
+        if let Some(t) = &token {
+            req = req.pagination_token(t);
+        }
+        let resp = req
+            .send()
+            .await
+            .with_context(|| format!("get_resources by tag {key}={value}"))?;
+        for entry in resp.resource_tag_mapping_list() {
+            if let Some(arn) = entry.resource_arn() {
+                if let Some(id) = arn.rsplit('/').next() {
+                    if !id.is_empty() {
+                        ids.push(id.to_string());
+                    }
+                }
+            }
+        }
+        match resp.pagination_token() {
+            Some(t) if !t.is_empty() => token = Some(t.to_string()),
+            _ => break,
+        }
+    }
+    Ok(ids)
+}
+
+fn parse_tag(s: &str) -> std::result::Result<(String, String), String> {
+    match s.split_once('=') {
+        Some((k, v)) if !k.is_empty() && !v.is_empty() => {
+            Ok((k.to_string(), v.to_string()))
+        }
+        _ => Err("expected KEY=VALUE with non-empty parts".to_string()),
+    }
 }
 
 async fn upload_all(

@@ -8,6 +8,7 @@ description = "Upload public/ to S3 and invalidate CloudFront distributions."
 anyhow = "1"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-cloudfront = "1"
+aws-sdk-resourcegroupstagging = "1"
 aws-sdk-s3 = "1"
 serde_json = "1"
 clap = { version = "4", features = ["derive", "env"] }
