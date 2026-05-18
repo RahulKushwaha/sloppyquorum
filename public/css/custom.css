@@ -93,3 +93,15 @@ html {
   scrollbar-gutter: stable;
   overflow-y: scroll;
 }
+
+/* Theme renders share icons with justify-content: space-between,
+   which on mobile pins one icon to each edge of the viewport and
+   leaves enormous empty gaps. Group them at the start with a
+   normal gap instead. */
+#sharingbuttons {
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+#sharingbuttons .resp-sharing-button__link {
+  margin: 0;
+}

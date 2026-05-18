@@ -1,0 +1,5 @@
+# Hugo build lock; transient.
+.hugo_build.lock
+
+# Lychee link-checker on-disk cache.
+.lycheecache

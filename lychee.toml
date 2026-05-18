@@ -1,0 +1,17 @@
+verbose = "info"
+no_progress = true
+include_fragments = "full"
+accept = ["200", "206", "301", "302", "308", "403", "429"]
+timeout = 20
+max_concurrency = 32
+cache = true
+max_cache_age = "1d"
+
+# Localhost is also caught earlier by the grep guard in
+# scripts/check-links.sh; excluding it here just keeps lychee
+# quiet if anything slips past.
+exclude = [
+  "^http://localhost",
+  "^https://localhost",
+  "^http://127\\.0\\.0\\.1",
+]
