@@ -47,6 +47,7 @@ jobs:
       - name: Check links with lychee
         uses: lycheeverse/lychee-action@v2
         with:
+          lycheeVersion: "0.24.2"
           # Offline mode: only validate internal links (fast,
           # deterministic, no flaky external 5xx). Run online
           # checks manually via workflow_dispatch when needed.
