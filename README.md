@@ -85,9 +85,61 @@ deploy push --bucket sloppyquorum.com --distributions D111ABC --dry-run
 
 Flags worth knowing:
 
+- `--bitwarden-item NAME`: pull AWS creds from a Bitwarden vault
+  item instead of the default credential chain (see below).
 - `--no-prune`: keep S3 keys that no longer exist in `public/`.
 - `--concurrency N`: max parallel uploads (default 16).
 - `--public-dir`, `--base-url`, `--repo`: override defaults.
+
+### Pulling AWS credentials from Bitwarden
+
+The `push` subcommand can fetch AWS credentials from a Bitwarden
+vault entry, which is handy if you don't want long-lived keys
+sitting in `~/.aws/credentials`. It shells out to the Bitwarden
+CLI (`bw`), so install that first if you haven't:
+
+```bash
+# native binary, no Node required:
+LATEST=$(curl -s https://api.github.com/repos/bitwarden/clients/releases \
+  | grep -oE '"tag_name": "cli-v[0-9.]+"' | head -1 | grep -oE 'v[0-9.]+')
+curl -sSL -o /tmp/bw.zip \
+  "https://github.com/bitwarden/clients/releases/download/cli-$LATEST/bw-oss-linux-${LATEST#v}.zip"
+unzip -o /tmp/bw.zip -d ~/.local/bin/ && chmod +x ~/.local/bin/bw
+```
+
+Store the AWS key as a **Login** item with this layout:
+
+| Field            | Value                                  |
+|------------------|----------------------------------------|
+| Name             | anything; pass it as `--bitwarden-item`|
+| Username         | `AWS_ACCESS_KEY_ID`                    |
+| Password         | `AWS_SECRET_ACCESS_KEY`                |
+| Custom field `AWS_SESSION_TOKEN` (optional) | STS session token, if used |
+
+Then on each deploy session:
+
+```bash
+# one-time per login:
+bw login
+
+# one-time per shell session:
+export BW_SESSION=$(bw unlock --raw)
+
+# every deploy:
+deploy push --bucket sloppyquorum.com \
+            --distributions D111ABC,D222XYZ \
+            --bitwarden-item aws-sloppyquorum
+
+# or set it once in your shell rc:
+export DEPLOY_BITWARDEN_ITEM=aws-sloppyquorum
+deploy push --bucket sloppyquorum.com --distributions D111ABC,D222XYZ
+```
+
+When `--bitwarden-item` is set, the AWS SDK uses those credentials
+exclusively; it does not fall through to env vars or
+`~/.aws/credentials`. If `BW_SESSION` is missing or the vault
+entry doesn't have the expected fields, `push` errors out before
+making any AWS call.
 
 CI runs the same link check on every push and PR via
 `.github/workflows/check-links.yml`; a broken link shows a red X

@@ -17,6 +17,7 @@ use std::time::SystemTime;
 
 use anyhow::{bail, Context, Result};
 use aws_sdk_cloudfront::types::{InvalidationBatch, Paths};
+use aws_sdk_s3::config::Credentials;
 use aws_sdk_s3::primitives::ByteStream;
 use clap::{Args, Parser, Subcommand};
 use futures::stream::{self, StreamExt};
@@ -61,6 +62,15 @@ struct PushArgs {
     /// CloudFront distribution IDs, comma-separated.
     #[arg(long, value_delimiter = ',', env = "DEPLOY_DISTRIBUTIONS")]
     distributions: Vec<String>,
+
+    /// Bitwarden item name (or id) holding the AWS credentials.
+    /// Expected schema: Login item where `username` is the
+    /// access key id, `password` is the secret access key, and
+    /// (optionally) a custom field named `AWS_SESSION_TOKEN`
+    /// holds an STS session token. `BW_SESSION` must be exported
+    /// (e.g. `export BW_SESSION=$(bw unlock --raw)`).
+    #[arg(long, env = "DEPLOY_BITWARDEN_ITEM")]
+    bitwarden_item: Option<String>,
 
     /// Don't delete S3 keys missing from public/.
     #[arg(long)]
@@ -201,7 +211,13 @@ async fn push(public: &Path, args: &PushArgs) -> Result<()> {
         return Ok(());
     }
 
-    let aws_cfg = aws_config::from_env().load().await;
+    let aws_cfg = match args.bitwarden_item.as_deref() {
+        Some(item) => {
+            let creds = fetch_bw_credentials(item)?;
+            aws_config::from_env().credentials_provider(creds).load().await
+        }
+        None => aws_config::from_env().load().await,
+    };
     let s3 = aws_sdk_s3::Client::new(&aws_cfg);
     let cf = aws_sdk_cloudfront::Client::new(&aws_cfg);
 
@@ -341,4 +357,56 @@ async fn invalidate(
         );
     }
     Ok(())
+}
+
+// Pull AWS credentials from a Bitwarden vault item. Shells out to
+// the Bitwarden CLI (`bw`), which reads its session from BW_SESSION
+// in the environment, parses the item's JSON, and builds a static
+// credential provider for the AWS SDK.
+fn fetch_bw_credentials(item: &str) -> Result<Credentials> {
+    if std::env::var("BW_SESSION").is_err() {
+        bail!(
+            "BW_SESSION not set. Run `export BW_SESSION=$(bw unlock --raw)` first."
+        );
+    }
+    let out = Command::new("bw")
+        .args(["get", "item", item, "--raw"])
+        .output()
+        .context("spawn bw (install the Bitwarden CLI and ensure it is on PATH)")?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        bail!("bw get item {item} failed: {}", stderr.trim());
+    }
+    let v: serde_json::Value =
+        serde_json::from_slice(&out.stdout).context("parse bw item JSON")?;
+    let login = v.get("login").context("vault item has no `login` section")?;
+    let access_key = login
+        .get("username")
+        .and_then(|s| s.as_str())
+        .filter(|s| !s.is_empty())
+        .context("login.username is empty (put the AWS access key id there)")?;
+    let secret = login
+        .get("password")
+        .and_then(|s| s.as_str())
+        .filter(|s| !s.is_empty())
+        .context("login.password is empty (put the AWS secret access key there)")?;
+    let session = v
+        .get("fields")
+        .and_then(|f| f.as_array())
+        .and_then(|fields| {
+            fields
+                .iter()
+                .find(|f| f.get("name").and_then(|n| n.as_str()) == Some("AWS_SESSION_TOKEN"))
+                .and_then(|f| f.get("value"))
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string())
+        });
+    Ok(Credentials::new(
+        access_key.to_string(),
+        secret.to_string(),
+        session,
+        None,
+        "bitwarden",
+    ))
 }
