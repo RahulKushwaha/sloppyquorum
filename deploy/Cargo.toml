@@ -1,0 +1,21 @@
+[package]
+name = "deploy"
+version = "0.1.0"
+edition = "2021"
+description = "Upload public/ to S3 and invalidate CloudFront distributions."
+
+[dependencies]
+anyhow = "1"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-cloudfront = "1"
+aws-sdk-s3 = "1"
+clap = { version = "4", features = ["derive", "env"] }
+futures = "0.3"
+mime_guess = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util"] }
+walkdir = "2"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

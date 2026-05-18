@@ -3,3 +3,6 @@
 
 # Lychee link-checker on-disk cache.
 .lycheecache
+
+# Rust deploy binary build artifacts.
+deploy/target/

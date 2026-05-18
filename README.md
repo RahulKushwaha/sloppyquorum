@@ -26,6 +26,13 @@ dpkg-deb -x /tmp/hugo.deb ~/.local
 brew install hugo
 ```
 
+Install lychee 0.24.x for the link checker:
+
+```bash
+cargo install lychee
+# or grab a binary from https://github.com/lycheeverse/lychee/releases
+```
+
 ## Local development
 
 ```bash
@@ -33,69 +40,72 @@ hugo server
 # http://localhost:1313/
 ```
 
-## Build
+**Never commit `public/` written by `hugo server`** -- it bakes
+`http://localhost:1313/` into every URL. The `deploy` binary's
+leak guard catches that.
+
+## The `deploy` binary
+
+`deploy/` is a Rust binary that wraps build, link check,
+S3 upload, and CloudFront invalidation behind one command.
+Subcommands run their prerequisites: `check` includes `build`,
+`push` includes both.
 
 ```bash
-hugo --minify --gc --cleanDestinationDir
+# from the repo root
+cargo run --release --manifest-path deploy/Cargo.toml -- <cmd>
+
+# or once, then call `deploy` from anywhere:
+cargo install --path deploy
 ```
 
-This regenerates `public/` against the production `baseURL` in
-`hugo.toml`. **Never check in `public/` that was written by
-`hugo server`** -- it bakes `http://localhost:1313/` into every
-URL. The link checker below catches that.
+| Subcommand | What it does                                                                 |
+|------------|------------------------------------------------------------------------------|
+| `build`    | `hugo --minify --gc --cleanDestinationDir`.                                  |
+| `check`    | `build` + grep `public/` for `localhost:NNNN` leaks + lychee (offline).      |
+| `push`     | `check` + parallel S3 PUT for every file in `public/` (sets `Content-Type` from extension) + optional prune of stale S3 keys + CloudFront `/*` invalidation on each distribution. |
 
-## Link check
-
-Verify every internal link and anchor in the built site:
+`push` requires `--bucket` and `--distributions` (or
+`DEPLOY_BUCKET` / `DEPLOY_DISTRIBUTIONS` env vars). AWS
+credentials come from the default chain (env, `~/.aws/credentials`,
+IMDS).
 
 ```bash
-./scripts/check-links.sh           # offline (internal only, fast)
-./scripts/check-links.sh --online  # also hit external URLs
+# typical deploy
+deploy push --bucket sloppyquorum.com --distributions D111ABC,D222XYZ
+
+# or
+export DEPLOY_BUCKET=sloppyquorum.com
+export DEPLOY_DISTRIBUTIONS=D111ABC,D222XYZ
+deploy push
+
+# rehearse without touching AWS
+deploy push --bucket sloppyquorum.com --distributions D111ABC --dry-run
 ```
 
-The script (1) rebuilds, (2) greps `public/` for `localhost:NNNN`
-leaks and fails loudly if any are found, and (3) runs lychee
-(`lychee.toml`) with `--root-dir` plus a
-`https://sloppyquorum.com/ -> file://.../public/` remap so every
-internal href resolves against the local build.
+Flags worth knowing:
 
-Same checks run in CI on every push and PR via
+- `--no-prune`: keep S3 keys that no longer exist in `public/`.
+- `--concurrency N`: max parallel uploads (default 16).
+- `--public-dir`, `--base-url`, `--repo`: override defaults.
+
+CI runs the same link check on every push and PR via
 `.github/workflows/check-links.yml`; a broken link shows a red X
-on the commit.
-
-Install lychee 0.24.x locally:
-
-```bash
-cargo install lychee
-# or grab a binary from https://github.com/lycheeverse/lychee/releases
-```
-
-## Deploy
-
-The site is hosted on S3 behind CloudFront. After committing a
-build:
-
-```bash
-aws s3 sync public/ s3://<bucket>/ --delete
-aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
-```
-
-The default CloudFront TTL is ~24h; without an invalidation,
-edge caches keep serving the old HTML.
+on the commit. CI does not push to S3.
 
 ## Layout
 
-| Path                              | What lives there                                              |
-|-----------------------------------|---------------------------------------------------------------|
-| `content/post/`                   | Posts (Markdown with TOML frontmatter).                       |
-| `content/about.md`                | About page.                                                   |
-| `layouts/_default/`               | Site-level overrides of theme templates (`baseof.html`, `rss.xml`). |
-| `static/`                         | Favicons, manifest, `css/custom.css`. Shadows theme `static/` by path. |
-| `themes/hugo-texify2/`            | Vendored theme (submodule, do not edit).                      |
-| `public/`                         | Generated output. Committed so deploys can sync straight from a clone. |
-| `scripts/check-links.sh`          | Build + link check, run locally before pushing.               |
-| `lychee.toml`                     | Lychee config (offline-friendly defaults, fragment checking). |
-| `.github/workflows/check-links.yml` | CI: builds and link-checks every push / PR.                 |
+| Path                                | What lives there                                                       |
+|-------------------------------------|------------------------------------------------------------------------|
+| `content/post/`                     | Posts (Markdown with TOML frontmatter).                                |
+| `content/about.md`                  | About page.                                                            |
+| `layouts/_default/`                 | Site-level overrides of theme templates (`baseof.html`, `rss.xml`).    |
+| `static/`                           | Favicons, manifest, `css/custom.css`. Shadows theme `static/` by path. |
+| `themes/hugo-texify2/`              | Vendored theme (submodule, do not edit).                               |
+| `public/`                           | Generated output. Committed so deploys can sync straight from a clone. |
+| `deploy/`                   | Rust binary (`build` / `check` / `push`).                              |
+| `lychee.toml`                       | Lychee config (offline-friendly defaults, fragment checking).          |
+| `.github/workflows/check-links.yml` | CI: builds and link-checks every push / PR.                            |
 
 ## Writing a new post
 
