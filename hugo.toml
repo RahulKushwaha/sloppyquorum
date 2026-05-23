@@ -27,6 +27,7 @@ email = "rahul.kushwaha@gmail.com"
 name = "Rahul Kushwaha"
 
 [params]
+images = ["icon-512.png"]
 title = "Sloppy Quorum"
 enableDuckDuckGoSearchBox = false
 numberedSubtitles = true
