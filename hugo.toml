@@ -29,6 +29,8 @@ name = "Rahul Kushwaha"
 [params]
 images = ["icon-512.png"]
 title = "Sloppy Quorum"
+description = "Notes on database internals, storage systems, and concurrency."
+keywords = ["database", "storage", "concurrency", "rust", "c++", "rocksdb", "performance"]
 enableDuckDuckGoSearchBox = false
 numberedSubtitles = true
 toc = true
