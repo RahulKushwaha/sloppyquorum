@@ -6,3 +6,6 @@
 
 # Rust deploy binary build artifacts.
 deploy/target/
+
+# Claude Code local state.
+.claude/
